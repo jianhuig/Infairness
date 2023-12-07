@@ -1,3 +1,6 @@
+# Purpose: Commonly used metrics to evaluate multi-group fairness
+# Updated: 2023-12-06
+
 max_min_diff <- function(x) {
   return(max(x) - min(x))
 }
