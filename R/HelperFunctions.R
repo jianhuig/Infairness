@@ -52,20 +52,20 @@ FitParametricCalibration <- function(Y_labeled,
 get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
   if (is.null(W)) {
     W <- rep(1, length(Y))
-  } 
+  }
   class <- sort(unique(A))
   out <- c()
   for (i in class) {
-    C <- 1*(S[A==i] > threshold)
-    P <- sum(Y[A == i] * W[A==i])
-    N <- sum((1 - Y[A == i]) * W[A==i])
-    TP <- sum(Y[A == i] * C*W[A==i])
-    FP <- sum((1 - Y[A == i]) * C*W[A==i])
+    C <- 1 * (S[A == i] > threshold)
+    P <- sum(Y[A == i] * W[A == i])
+    N <- sum((1 - Y[A == i]) * W[A == i])
+    TP <- sum(Y[A == i] * C * W[A == i])
+    FP <- sum((1 - Y[A == i]) * C * W[A == i])
     TN <- N - FP
     FN <- P - TP
     PP <- TP + FP
     PN <- FN + TN
-    
+
     tpr <- TP / P
     tnr <- TN / (TN + FP)
     fpr <- FP / N
@@ -74,13 +74,13 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     ppv <- TP / PP
     acc <- (TP + TN) / (P + N)
     f1 <- (2 * TP) / (2 * TP + FP + FN)
-    bs <- mean(Y[A==i] + S[A==i]^2 - 2 * Y[A==i] * S[A ==i])
+    bs <- mean(Y[A == i] * W[A == i] + S[A == i]^2 - 2 * Y[A == i] * S[A == i] * W[A == i])
     out <- c(out, tpr, tnr, fpr, fnr, npv, ppv, acc, f1, bs)
   }
-  if(length(class) == 2){
-  out <- cbind(matrix(out, ncol = 2, byrow = FALSE), NA)
-  out[, 3] <- out[, 1] - out[, 2]
-  colnames(out) <- c(paste0("Group", class), "Delta")
+  if (length(class) == 2) {
+    out <- cbind(matrix(out, ncol = 2, byrow = FALSE), NA)
+    out[, 3] <- out[, 1] - out[, 2]
+    colnames(out) <- c(paste0("Group", class), "Delta")
   } else {
     out <- matrix(out, ncol = length(class), byrow = FALSE)
     colnames(out) <- paste0("Group", class)
@@ -90,7 +90,7 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
 }
 
 # Indicator function in R
-Indicator <- function(x){
+Indicator <- function(x) {
   ifelse(I(x), 1, 0)
 }
 
