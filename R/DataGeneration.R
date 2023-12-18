@@ -33,9 +33,9 @@ DataGeneration <- function(n_labeled,
   N_total <- n_labeled + N_unlabeled
 
   # Generate Group Membership
-  A <- sample(1:n_class, N_total,
-    replace = TRUE,
-    prob = prot_att_prevalence
+  A_total <- round(N_total * prot_att_prevalence)
+  A <- sample(unlist(lapply(seq_along(A_total), function(i) rep(i, A_total[i]))), N_total,
+    replace = FALSE
   )
 
   # Generate Covariates
