@@ -34,6 +34,7 @@ DataGeneration <- function(n_labeled,
 
   # Generate Group Membership
   A_total <- round(N_total * prot_att_prevalence)
+  N_total <- sum(A_total)
   A <- sample(unlist(lapply(seq_along(A_total), function(i) rep(i, A_total[i]))), N_total,
     replace = FALSE
   )

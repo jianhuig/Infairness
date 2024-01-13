@@ -83,7 +83,11 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     colnames(out) <- c(paste0("Group", class), "Delta")
   } else {
     out <- matrix(out, ncol = length(class), byrow = FALSE)
-    colnames(out) <- paste0("Group", class)
+    mad <- as.numeric(apply(out, 1, mad))
+    var <- as.numeric(apply(out, 1, var))
+    gei <- as.numeric(apply(out, 1, entropy))
+    out <- cbind(out, mad, var, gei)
+    colnames(out) <- c(paste0("Group", class), "mad","var", "gei")
   }
   rownames(out) <- c("TPR", "TNR", "FPR", "FNR", "NPV", "PPV", "ACC", "F1", "BS")
   tibble::rownames_to_column(as.data.frame(out), "Metric")
