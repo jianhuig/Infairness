@@ -28,7 +28,7 @@ resample <- function(Y,
       )
     })
   } else {
-    pbapply::pblapply(1:n_boot, function(i) {
+    lapply(1:n_boot, function(i) {
       W <- 4 * rbeta(sum(is.na(Y)), 1 / 2, 3 / 2)
       Infairness(Y,
         S,
