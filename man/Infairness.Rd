@@ -14,7 +14,7 @@ Infairness(
   W = NULL,
   method = "spline",
   ridge = TRUE,
-  step = 2
+  step = 1
 )
 }
 \arguments{

@@ -124,10 +124,12 @@ Infairness <- function(Y,
             }
           )
         } else {
-          gamma <- coef(glm(Y_labeled[A_labeled == a] ~ 
-                              basis_labeled[A_labeled == a, ], 
-                            weights = W_label[A_labeled == a], 
-                            family = "binomial"))
+          gamma <- coef(glm(
+            Y_labeled[A_labeled == a] ~
+              basis_labeled[A_labeled == a, ],
+            weights = W_label[A_labeled == a],
+            family = "binomial"
+          ))
         }
 
         if (length(gamma) == 1) {
@@ -164,7 +166,6 @@ Infairness <- function(Y,
 
         m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
       } else {
-
         # One step ridge
         # Tuning parameter; log(k)/n^penalty
         lambda <- log(ncol(basis_exp)) / length(Y_labeled[A == a])^penalty
@@ -196,30 +197,33 @@ Infairness <- function(Y,
         m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
       }
     } else if (method == "quad") {
-      gamma <- coef(glm(Y_labeled[A_labeled == a] ~
-      basis_labeled[A_labeled == a, ],
-      weights = W_label[A_labeled == a],
-      family = "binomial"
+      gamma <- coef(glm(
+        Y_labeled[A_labeled == a] ~
+          basis_labeled[A_labeled == a, ],
+        weights = W_label[A_labeled == a],
+        family = "binomial"
       ))
 
       m_unlabeled[A_unlabeled == a] <- boot::inv.logit(as.matrix(
         cbind(1, basis_unlabeled[A_unlabeled == a, ])
       ) %*% gamma)
     } else if (method == "platt") {
-      gamma <- coef(glm(Y_labeled[A_labeled == a] ~
-      S_labeled[A_labeled == a],
-      weights = W_label[A_labeled == a],
-      family = "binomial"
+      gamma <- coef(glm(
+        Y_labeled[A_labeled == a] ~
+          S_labeled[A_labeled == a],
+        weights = W_label[A_labeled == a],
+        family = "binomial"
       ))
       m_unlabeled[A_unlabeled == a] <- boot::inv.logit(as.matrix(
         cbind(1, S_unlabeled[A_unlabeled == a])
       ) %*% gamma)
     } else if (method == "beta") {
-      gamma <- coef(glm(Y_labeled[A_labeled == a] ~
-      log(S_labeled[A_labeled == a]) +
-        log(1 - S_labeled[A_labeled == a]),
-      weights = W_label[A_labeled == a],
-      family = "binomial"
+      gamma <- coef(glm(
+        Y_labeled[A_labeled == a] ~
+          log(S_labeled[A_labeled == a]) +
+          log(1 - S_labeled[A_labeled == a]),
+        weights = W_label[A_labeled == a],
+        family = "binomial"
       ))
       m_unlabeled[A_unlabeled == a] <- boot::inv.logit(as.matrix(
         cbind(
@@ -228,7 +232,6 @@ Infairness <- function(Y,
         )
       ) %*% gamma)
     } else {
-
       # compute bandwith
       bw <- sd(Strans_labeled[A_labeled == a]) / (length(Strans_labeled[A_labeled == a])^0.45)
 

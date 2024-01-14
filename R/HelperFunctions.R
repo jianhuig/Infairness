@@ -26,7 +26,7 @@ FitParametricCalibration <- function(Y_labeled,
 
   if (method == "Platt") {
     param_model <- glm(Y_labeled[A_labeled == A_val] ~
-    S_labeled[A_labeled == A_val], family = binomial, weights = W)$coeff
+      S_labeled[A_labeled == A_val], family = binomial, weights = W)$coeff
 
     imp_unlabeled <- expit(cbind(1, S_unlabeled) %*%
       param_model)
@@ -37,7 +37,7 @@ FitParametricCalibration <- function(Y_labeled,
 
     param_model <- glm(
       Y_labeled[A_labeled == A_val] ~
-      log(S_labeled[A_labeled == A_val]) +
+        log(S_labeled[A_labeled == A_val]) +
         log(1 - S_labeled[A_labeled == A_val]),
       family = binomial, weights = W
     )$coeff
@@ -74,7 +74,9 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     ppv <- TP / PP
     acc <- (TP + TN) / (P + N)
     f1 <- (2 * TP) / (2 * TP + FP + FN)
-    bs <- mean(Y[A == i] * W[A == i] + S[A == i]^2 - 2 * Y[A == i] * S[A == i] * W[A == i])
+    bs <- mean(Y[A == i] * W[A == i] +
+      (S[A == i])**2 * W[A == i] -
+      2 * Y[A == i] * S[A == i] * W[A == i]) / mean(W[A == i])
     out <- c(out, tpr, tnr, fpr, fnr, npv, ppv, acc, f1, bs)
   }
   if (length(class) == 2) {
@@ -87,7 +89,7 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     var <- as.numeric(apply(out, 1, var))
     gei <- as.numeric(apply(out, 1, entropy))
     out <- cbind(out, mad, var, gei)
-    colnames(out) <- c(paste0("Group", class), "mad","var", "gei")
+    colnames(out) <- c(paste0("Group", class), "mad", "var", "gei")
   }
   rownames(out) <- c("TPR", "TNR", "FPR", "FNR", "NPV", "PPV", "ACC", "F1", "BS")
   tibble::rownames_to_column(as.data.frame(out), "Metric")
