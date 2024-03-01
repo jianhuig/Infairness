@@ -66,7 +66,7 @@ Influence_curve <- function(pest, Y, S, A, threshold = 0.5, method) {
         ])**2 * C) /
           (length(Y)**2)
     }
-    out[,"Delta"] <- rowSums(out[,paste0("Group", class)])
+    out[, "Delta"] <- rowSums(out[, paste0("Group", class)])
   }
   return(out)
 }

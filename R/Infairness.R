@@ -196,7 +196,7 @@ Infairness <- function(Y,
           )
         ) %*% gamma)
         m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
-        
+
         imputed_labeled <- boot::inv.logit(as.matrix(
           cbind(
             1, basis_labeled[A_labeled == a, ],
