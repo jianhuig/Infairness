@@ -14,5 +14,5 @@ LaTeX: pdfLaTeX
 
 BuildType: Package
 PackageUseDevtools: Yes
-PackagePath: /Users/jianhuigao/Desktop/Infariness-package
+PackagePath: /Users/jianhuigao/Library/CloudStorage/OneDrive-UniversityofToronto/Desktop/Infairness-package
 PackageInstallArgs: --no-multiarch --with-keep.source

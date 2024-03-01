@@ -97,6 +97,7 @@ Infairness <- function(Y,
 
   # Augmentation in each class
   m_unlabeled <- S_unlabeled # imputed values
+  m_labeled <- S_labeled # imputed values
 
   nclass <- sort(unique(A))
   for (a in nclass) {
@@ -195,6 +196,14 @@ Infairness <- function(Y,
           )
         ) %*% gamma)
         m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
+        
+        imputed_labeled <- boot::inv.logit(as.matrix(
+          cbind(
+            1, basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a]
+          )
+        ) %*% gamma)
+        m_labeled[A_labeled == a] <- imputed_labeled
       }
     } else if (method == "quad") {
       gamma <- coef(glm(
@@ -244,8 +253,8 @@ Infairness <- function(Y,
     }
   }
 
-  get_metric(
+  return(get_metric(
     Y = m_unlabeled, S = S_unlabeled,
     A = A_unlabeled, threshold = threshold, W = W
-  )
+  ))
 }
