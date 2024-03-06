@@ -36,7 +36,7 @@ resample <- function(Y,
         W = W,
         method = method,
         ...
-      )
+      )$metric
     })
   }
 }
