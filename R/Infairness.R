@@ -18,7 +18,8 @@
 #' @param lambda Ridge penalty parameter vector.
 #' @param W Weight for labeled data.
 #' Default value is NULL.
-#' @param method Smoothing method. Options are  natural cubic spline "spline" , kernel smoothing "ks" , and quadratic polynomial "quad"
+#' @param method Smoothing method. Options are  natural cubic spline "spline" ,
+#' kernel smoothing "ks" , and quadratic polynomial "quad"
 #' @param ridge Whether to perform ridge regression
 #' @export
 #'
@@ -242,7 +243,8 @@ Infairness <- function(Y,
       ) %*% gamma)
     } else {
       # compute bandwith
-      bw <- sd(Strans_labeled[A_labeled == a]) / (length(Strans_labeled[A_labeled == a])^0.45)
+      bw <- sd(Strans_labeled[A_labeled == a]) /
+        (length(Strans_labeled[A_labeled == a])^0.45)
 
       # NW estimator
       mhat <- npreg(Strans_labeled[A_labeled == a], Y_labeled[A_labeled == a],
@@ -253,8 +255,8 @@ Infairness <- function(Y,
     }
   }
 
-  return(get_metric(
+  return(list(metric = get_metric(
     Y = m_unlabeled, S = S_unlabeled,
     A = A_unlabeled, threshold = threshold, W = W
-  ))
+  ), m_labeled = m_labeled, m_unlabeled = m_unlabeled))
 }
