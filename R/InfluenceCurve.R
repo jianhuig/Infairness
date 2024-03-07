@@ -9,7 +9,7 @@
 #' Default value is 0.5.
 
 
-Influence_curve <- function(pest, Y, S, A, m = null, threshold = 0.5, method) {
+Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
   class <- sort(unique(A))
   out <- pest
   for (i in class) {
@@ -46,7 +46,10 @@ Influence_curve <- function(pest, Y, S, A, m = null, threshold = 0.5, method) {
       # influence curve for NPV
       out[out$Metric == "NPV", paste0("Group", i)] <-
         (rho)^(-2) * (1 - mu_D)^(-2) *
-          sum((1 - D) * (1 - Y - pest[pest$Metric == "NPV", paste0("Group", i)])**2 * C) /
+          sum((1 - D) * (1 - Y - pest[
+            pest$Metric == "NPV",
+            paste0("Group", i)
+          ])**2 * C) /
           (length(Y)**2)
 
       # influence curve for F1
@@ -59,7 +62,10 @@ Influence_curve <- function(pest, Y, S, A, m = null, threshold = 0.5, method) {
       # influence curve for ACC
       out[out$Metric == "ACC", paste0("Group", i)] <-
         (rho)^(-2) * sum((1 - (Y - D)^2 -
-          pest[pest$Metric == "ACC", paste0("Group", i)])**2 * C) /
+          pest[
+            pest$Metric == "ACC",
+            paste0("Group", i)
+          ])**2 * C) /
           (length(Y)**2)
 
       # influence curve for BS
@@ -75,9 +81,53 @@ Influence_curve <- function(pest, Y, S, A, m = null, threshold = 0.5, method) {
         out$Metric == "FNR",
         paste0("Group", i)
       ] <- (rho)^(-2) * (mu_Y)^(-2) *
-        sum( (Y - m) * (D - pest[pest$Metric == "TPR", paste0("Group", i)])**2 * C) /
+        sum(((Y - m)**2) * (D - pest[
+          pest$Metric == "TPR",
+          paste0("Group", i)
+        ])**2 * C) /
         (length(Y)**2)
+
+      # influence curve for FPR & TNR
+      out[out$Metric == "FPR", paste0("Group", i)] <- out[
+        out$Metric == "TNR",
+        paste0("Group", i)
+      ] <- (rho)^(-2) *
+        (1 - mu_Y)^(-2) * sum(((Y - m)**2) * (D - pest[
+          pest$Metric == "FPR",
+          paste0("Group", i)
+        ])**2 * C) / (length(Y)**2)
+
+      # influence curve for PPV
+      out[out$Metric == "PPV", paste0("Group", i)] <-
+        (rho)^(-2) * (mu_D)^(-2) *
+          sum(D * (Y - m)**2 * C) /
+          (length(Y)**2)
+
+      # influence curve for NPV
+      out[out$Metric == "NPV", paste0("Group", i)] <-
+        (rho)^(-2) * (1 - mu_D)^(-2) *
+          sum((1 - D)**2 * (Y - m)**2 * C) /
+          (length(Y)**2)
+
+      # influence curve for F1
+      out[out$Metric == "F1", paste0("Group", i)] <-
+        (rho)^(-2) * (mu_Y + mu_D)**(-2) *
+          sum(((Y - m)**2 * (2 * D + pest[
+            pest$Metric == "F1",
+            paste0("Group", i)
+          ]))**2 * C) /
+          (length(Y)**2)
     }
+    # influence curve for ACC
+    out[out$Metric == "ACC", paste0("Group", i)] <-
+      (rho)^(-2) * sum((Y - m)**2 *
+        (2 * D - 1)**2 * C) /
+        (length(Y)**2)
+
+    # influence curve for BS
+    out[out$Metric == "BS", paste0("Group", i)] <-
+      (rho)^(-2) * sum((Y - m)**2 * (1 - 2 * S)**2 * C) /
+        (length(Y)**2)
   }
 
   if (length(class) == 2) {

@@ -55,46 +55,17 @@ Infairness <- function(Y,
   A_unlabeled <- A[-labeled_ind]
   C_unlabeled <- C[-labeled_ind]
 
-  if (method == "spline") {
-    # Natural cubic spline basis with S included
-    basis_exp <- NaturalSplineBasis(c(S_labeled, S_unlabeled),
+  # Natural cubic spline basis with S included
+  basis_exp <- NaturalSplineBasis(c(S_labeled, S_unlabeled),
       num_knots = nknots
     )
 
-    # Labeled Basis
-    basis_labeled <- basis_exp[1:length(S_labeled), ]
+  # Labeled Basis
+  basis_labeled <- basis_exp[1:length(S_labeled), ]
 
-    # Unlabeled Basis
-    basis_unlabeled <- basis_exp[(length(S_labeled) + 1):nrow(basis_exp), ]
-  } else if (method == "ns") {
-    # Natural cubic spline basis
-    basis_exp <- splines::ns(c(S_labeled, S_unlabeled), df = 2)
-
-    # Labeled Basis
-    basis_labeled <- basis_exp[1:length(S_labeled), ]
-
-    # Unlabeled Basis
-    basis_unlabeled <- basis_exp[(length(S_labeled) + 1):nrow(basis_exp), ]
-  } else if (method == "quad") {
-    # Natural cubic spline basis
-    basis_exp <- stats::poly(c(S_labeled, S_unlabeled), df = 2)
-
-    # Labeled Basis
-    basis_labeled <- basis_exp[1:length(S_labeled), ]
-
-    # Unlabeled Basis
-    basis_unlabeled <- basis_exp[(length(S_labeled) + 1):nrow(basis_exp), ]
-  } else if (method == "ks") {
-    # Transformed Score
-    Strans <- ecdf(S)(S)
-    Strans_labeled <- Strans[labeled_ind]
-    Strans_unlabeled <- Strans[-labeled_ind]
-  } else if (method == "beta") {
-    S_labeled[S_labeled == 1] <- S_labeled[S_labeled == 1] - 1e6
-    S_labeled[S_labeled == 0] <- S_labeled[S_labeled == 0] + 1e6
-    S_unlabeled[S_unlabeled == 0] <- S_unlabeled[S_unlabeled == 0] + 1e6
-    S_unlabeled[S_unlabeled == 0] <- S_unlabeled[S_unlabeled == 0] + 1e6
-  }
+  # Unlabeled Basis
+  basis_unlabeled <- basis_exp[(length(S_labeled) + 1):nrow(basis_exp), ]
+  
 
   # Augmentation in each class
   m_unlabeled <- S_unlabeled # imputed values
@@ -102,72 +73,6 @@ Infairness <- function(Y,
 
   nclass <- sort(unique(A))
   for (a in nclass) {
-    if (method == "spline") {
-      if (step == 2) {
-        # 2 Step procedure
-
-        if (ridge) {
-          # Tuning parameter; log(k)/n^penalty
-          lambda <- log(ncol(basis_exp)) / length(Y_labeled[A == a])^penalty
-
-          ## Step I, Ridge Regression
-          gamma <- tryCatch(
-            {
-              RidgeRegression(
-                X = basis_labeled[A_labeled == a, ],
-                y = Y_labeled[A_labeled == a],
-                lambda = lambda,
-                weights = W_label[A_labeled == a]
-              )
-            },
-            error = function(e) {
-              print("Ridge Regression produced an error")
-              return(NA)
-            }
-          )
-        } else {
-          gamma <- coef(glm(
-            Y_labeled[A_labeled == a] ~
-              basis_labeled[A_labeled == a, ],
-            weights = W_label[A_labeled == a],
-            family = "binomial"
-          ))
-        }
-
-        if (length(gamma) == 1) {
-          return(NA)
-        }
-        recal_labeled <- as.matrix(
-          cbind(1, basis_labeled[A_labeled == a, ])
-        ) %*% gamma
-
-        recal_unlabeled <- as.matrix(
-          cbind(1, basis_unlabeled[A_unlabeled == a, ])
-        ) %*% gamma
-
-        ## Step II: Robust augmentation
-        impute_model <- suppressWarnings(
-          glm(Y_labeled[A_labeled == a] ~ C_labeled[A_labeled == a],
-            offset = recal_labeled,
-            family = binomial,
-            weights = W_label[A_labeled == a]
-          )$coefficients
-        )
-
-        imputed_labeled <- boot::inv.logit(
-          impute_model[1] +
-            impute_model[2] * C_labeled[A_labeled == a] +
-            recal_labeled
-        )
-
-        imputed_unlabeled <- boot::inv.logit(
-          impute_model[1] +
-            impute_model[2] * C_unlabeled[A_unlabeled == a] +
-            recal_unlabeled
-        )
-
-        m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
-      } else {
         # One step ridge
         # Tuning parameter; log(k)/n^penalty
         lambda <- log(ncol(basis_exp)) / length(Y_labeled[A == a])^penalty
@@ -205,58 +110,14 @@ Infairness <- function(Y,
           )
         ) %*% gamma)
         m_labeled[A_labeled == a] <- imputed_labeled
-      }
-    } else if (method == "quad") {
-      gamma <- coef(glm(
-        Y_labeled[A_labeled == a] ~
-          basis_labeled[A_labeled == a, ],
-        weights = W_label[A_labeled == a],
-        family = "binomial"
-      ))
 
-      m_unlabeled[A_unlabeled == a] <- boot::inv.logit(as.matrix(
-        cbind(1, basis_unlabeled[A_unlabeled == a, ])
-      ) %*% gamma)
-    } else if (method == "platt") {
-      gamma <- coef(glm(
-        Y_labeled[A_labeled == a] ~
-          S_labeled[A_labeled == a],
-        weights = W_label[A_labeled == a],
-        family = "binomial"
-      ))
-      m_unlabeled[A_unlabeled == a] <- boot::inv.logit(as.matrix(
-        cbind(1, S_unlabeled[A_unlabeled == a])
-      ) %*% gamma)
-    } else if (method == "beta") {
-      gamma <- coef(glm(
-        Y_labeled[A_labeled == a] ~
-          log(S_labeled[A_labeled == a]) +
-          log(1 - S_labeled[A_labeled == a]),
-        weights = W_label[A_labeled == a],
-        family = "binomial"
-      ))
-      m_unlabeled[A_unlabeled == a] <- boot::inv.logit(as.matrix(
-        cbind(
-          1, log(S_unlabeled[A_unlabeled == a]),
-          log(1 - S_unlabeled[A_unlabeled == a])
-        )
-      ) %*% gamma)
-    } else {
-      # compute bandwith
-      bw <- sd(Strans_labeled[A_labeled == a]) /
-        (length(Strans_labeled[A_labeled == a])^0.45)
-
-      # NW estimator
-      mhat <- npreg(Strans_labeled[A_labeled == a], Y_labeled[A_labeled == a],
-        Strans_unlabeled[A_unlabeled == a],
-        bw = bw, Wt = W_label[A_labeled == a]
-      )
-      m_unlabeled[A_unlabeled == a] <- mhat
-    }
-  }
-
-  return(list(metric = get_metric(
+  } 
+  
+  est <- get_metric(
     Y = m_unlabeled, S = S_unlabeled,
     A = A_unlabeled, threshold = threshold, W = W
-  ), m_labeled = m_labeled, m_unlabeled = m_unlabeled))
+  )
+  var <- Influence_curve(est, Y_labeled, S_labeled, A_labeled, m_labeled, threshold, method = "semi-supervised")
+
+  return(list(est = est, var = var))
 }

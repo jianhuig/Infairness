@@ -16,7 +16,8 @@ SupervisedFairness <- function(Y,
                                A,
                                threshold = 0.5,
                                W = NULL) {
-  results <- get_metric(Y, S, A, threshold, W = W)
+  est <- get_metric(Y, S, A, threshold, W = W)
+  var <- Influence_curve(est, Y, S, A, threshold, method = "supervised")
 
-  return(results)
+  return(list(est = est, var = var))
 }
