@@ -17,6 +17,8 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
     C <- 1 * (A == i)
     mu_Y <- mean(Y[A == i])
     mu_D <- mean(D[A == i])
+    mu_S <- mean(S[A == i])
+    mu_SY <- mean(S[A == i] * Y[A == i])
     rho <- sum(A == i) / length(A)
     if (method == "supervised") {
       # influence curve for TPR & FNR
@@ -117,17 +119,18 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
             paste0("Group", i)
           ]))**2 * C) /
           (length(Y)**2)
-    }
-    # influence curve for ACC
-    out[out$Metric == "ACC", paste0("Group", i)] <-
-      (rho)^(-2) * sum((Y - m)**2 *
-        (2 * D - 1)**2 * C) /
-        (length(Y)**2)
 
-    # influence curve for BS
-    out[out$Metric == "BS", paste0("Group", i)] <-
-      (rho)^(-2) * sum((Y - m)**2 * (1 - 2 * S)**2 * C) /
-        (length(Y)**2)
+      # influence curve for ACC
+      out[out$Metric == "ACC", paste0("Group", i)] <-
+        (rho)^(-2) * sum((Y - m)**2 *
+          (2 * D - 1)**2 * C) /
+          (length(Y)**2)
+
+      # influence curve for BS
+      out[out$Metric == "BS", paste0("Group", i)] <-
+        (rho)^(-2) * sum((Y - m)**2 * (1 - 2 * S)**2 * C) /
+          (length(Y)**2)
+    }
   }
 
   if (length(class) == 2) {
