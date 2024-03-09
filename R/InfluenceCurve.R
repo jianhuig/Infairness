@@ -114,10 +114,10 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
       # influence curve for F1
       out[out$Metric == "F1", paste0("Group", i)] <-
         (rho)^(-2) * (mu_Y + mu_D)**(-2) *
-          sum(((Y - m)**2 * (2 * D + pest[
+          sum((Y - m)**2 * (2 * D - pest[
             pest$Metric == "F1",
             paste0("Group", i)
-          ]))**2 * C) /
+          ])**2 * C) /
           (length(Y)**2)
 
       # influence curve for ACC
