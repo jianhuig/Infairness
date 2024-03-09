@@ -25,7 +25,7 @@ resample <- function(Y,
         A,
         threshold = threshold,
         W = W
-      )
+      )$est
     })
   } else {
     lapply(1:n_boot, function(i) {
@@ -36,7 +36,7 @@ resample <- function(Y,
         W = W,
         method = method,
         ...
-      )$metric
+      )$est
     })
   }
 }
