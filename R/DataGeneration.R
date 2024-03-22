@@ -42,7 +42,8 @@ DataGeneration <- function(n_labeled,
   id_matrix <- diag(p)
   ar_one_matrix <- rho^abs(row(id_matrix) - col(id_matrix))
   sigma <- 3 * ar_one_matrix
-  X <- cbind(1, MASS::mvrnorm(N_total, rep(0, p), Sigma = sigma))
+  mu <- rbinom(p, 3, 0.3)
+  X <- cbind(1, MASS::mvrnorm(N_total, mu, Sigma = sigma))
   colnames(X) <- paste0("X_", 0:p)
 
   # Linear Predictor
