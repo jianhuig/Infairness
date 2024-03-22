@@ -9,12 +9,10 @@
 #' If the number of class is more than two, the length of this vector
 #' should be equal to the number of class. If the number of class is two,
 #' the length of this vector can either be one or two.
-#' @param Y_prevalence Prevalence of Y.
 #' @param model Indicator to generate from which model.
 #' Default is logistic model.
 #' possible options: "correct", "incorrect outcome", "incorrect outcome and imputation 1", and "incorrect outcome and imputation 2".
 #' @param b0 Vector of parameters to generate Y.
-#' @param mis_para Vector of parameters to generate S when model is "mis".
 #' @param n_class Number of class in the protected attribute. Default is two
 #' @param p Number of covariates. Default is 10.
 #' @param rho Correlation between covariates. Default is 0.2.
@@ -26,6 +24,7 @@ DataGeneration <- function(n_labeled,
                            prot_att_prevalence,
                            model = "correct",
                            b0 = NULL,
+                           b1 = NULL,
                            p = 10,
                            rho = 0.4,
                            n_class = 2) {
@@ -56,33 +55,27 @@ DataGeneration <- function(n_labeled,
   # Generate Y
   if (model == "correct") {
     Y <- rep(NA, N_total)
+    S <- plogis(lin_pred)
     for (a in 1:n_class) {
-      Y[A == a] <- ifelse(
-        lin_pred[A == a, a] + eps_logistic[A == a] > 0, 1, 0
-      )
+      Y[A == a] <- rbinom(sum(A == a), 1, S[A == a, a])
     }
   }
   if (model == "incorrect outcome") {
     Y <- rep(NA, N_total)
-    S <- boot::inv.logit(lin_pred)
-    # basis <- ns.basis(lin_pred, nk = 3)
-    # print(head(basis))
-    effect_size <- c(1, 1)
+    S <- plogis(lin_pred)
     for (a in 1:n_class) {
-      Y[A == a] <- ifelse(
-        lin_pred[A == a, a] +
-          effect_size[a] * ns.basis(S[, a], nk = 3)[A == a, 2] +
-          eps_logistic[A == a] > 0, 1, 0
-      )
+      lin_pred_new <- cbind(1, ns.basis(S[,a], 3)) %*% b1[a,]
+      S_new <- plogis(lin_pred_new)
+      Y[A == a] <- rbinom(sum(A == a), 1, S_new[A == a])
     }
   }
   if (model == "incorrect outcome and imputation 1") {
     Y <- rep(NA, N_total)
+    S <- tanh(lin_pred) # first layer
     for (a in 1:n_class) {
-      Y[A == a] <- ifelse(
-        lin_pred[A == a, a] + 0.5 * (X[, 2] * X[, 3] + X[, 2] * X[, 6] - X[, 3] * X[, 7])[A == a] +
-          eps_logistic[A == a] > 0, 1, 0
-      )
+      lin_pred_new <- cbind(1, tanh(lin_pred)[,a]) %*% b1[a,]
+      S_new <- plogis(lin_pred_new)
+      Y[A == a] <- rbinom(sum(A == a), 1, S_new[A == a]) 
     }
   }
   if (model == "incorrect outcome and imputation 2") {
