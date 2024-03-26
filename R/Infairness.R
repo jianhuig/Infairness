@@ -18,8 +18,6 @@
 #' @param lambda Ridge penalty parameter vector.
 #' @param W Weight for labeled data.
 #' Default value is NULL.
-#' @param method Smoothing method. Options are  natural cubic spline "spline" ,
-#' kernel smoothing "ks" , and quadratic polynomial "quad"
 #' @param ridge Whether to perform ridge regression
 #' @export
 #'
@@ -30,9 +28,7 @@ Infairness <- function(Y,
                        nknots = 3,
                        penalty = 1.5,
                        W = NULL,
-                       method = "spline",
-                       ridge = TRUE,
-                       step = 1) {
+                       ridge = TRUE) {
   if (!is.null(W)) {
     W_label <- 4 * rbeta(sum(!is.na(Y)), 1 / 2, 3 / 2)
   } else {

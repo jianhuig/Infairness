@@ -77,8 +77,7 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     bs <- mean(Y[A == i] * W[A == i] +
       (S[A == i])**2 * W[A == i] -
       2 * Y[A == i] * S[A == i] * W[A == i]) / mean(W[A == i])
-    mu <- mean(Y[A == i])
-    out <- c(out, tpr, tnr, fpr, fnr, npv, ppv, acc, f1, bs, mu)
+    out <- c(out, tpr, tnr, fpr, fnr, npv, ppv, acc, f1, bs)
   }
   if (length(class) == 2) {
     out <- cbind(matrix(out, ncol = 2, byrow = FALSE), NA)
@@ -92,7 +91,7 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     out <- cbind(out, mad, var, gei)
     colnames(out) <- c(paste0("Group", class), "mad", "var", "gei")
   }
-  rownames(out) <- c("TPR", "TNR", "FPR", "FNR", "NPV", "PPV", "ACC", "F1", "BS", "mu")
+  rownames(out) <- c("TPR", "TNR", "FPR", "FNR", "NPV", "PPV", "ACC", "F1", "BS")
   tibble::rownames_to_column(as.data.frame(out), "Metric")
 }
 
