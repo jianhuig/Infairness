@@ -1,13 +1,13 @@
 # Purpose: Influence functions for fairness estimation
 # Updated: 2024-03-01
 
+#' Influence Curves
+#'
 #' @param Y Outcome in labeled dataset.
 #' @param S Model score in labeled dataset.
 #' @param A Group indicator in labeled dataset.
-#' @param threshold Threshold for classification based on the model score.
+#' @param threshold Threshold for classification based on the model score Default value is 0.5.
 #' @export
-#' Default value is 0.5.
-
 
 Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
   class <- sort(unique(A))

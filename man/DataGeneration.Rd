@@ -10,9 +10,9 @@ DataGeneration(
   prot_att_prevalence,
   model = "correct",
   b0 = NULL,
+  b1 = NULL,
   p = 10,
-  rho = 0.4,
-  n_class = 2
+  rho = 0.4
 )
 }
 \arguments{
@@ -34,12 +34,6 @@ possible options: "correct", "incorrect outcome", "incorrect outcome and imputat
 \item{p}{Number of covariates. Default is 10.}
 
 \item{rho}{Correlation between covariates. Default is 0.2.}
-
-\item{n_class}{Number of class in the protected attribute. Default is two}
-
-\item{Y_prevalence}{Prevalence of Y.}
-
-\item{mis_para}{Vector of parameters to generate S when model is "mis".}
 }
 \value{
 Data.frame.

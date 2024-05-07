@@ -12,9 +12,7 @@ Infairness(
   nknots = 3,
   penalty = 1.5,
   W = NULL,
-  method = "spline",
-  ridge = TRUE,
-  step = 1
+  ridge = TRUE
 )
 }
 \arguments{
@@ -32,8 +30,6 @@ Default value is 3.}
 
 \item{W}{Weight for labeled data.
 Default value is NULL.}
-
-\item{method}{Smoothing method. Options are  natural cubic spline "spline" , kernel smoothing "ks" , and quadratic polynomial "quad"}
 
 \item{ridge}{Whether to perform ridge regression}
 

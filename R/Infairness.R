@@ -115,5 +115,5 @@ Infairness <- function(Y,
   )
   var <- Influence_curve(est, Y_labeled, S_labeled, A_labeled, m_labeled, threshold, method = "semi-supervised")
 
-  return(list(est = est, var = var))
+  return(list(est = est, var = var, m_unlabeled = m_unlabeled, m_labeled = m_labeled))
 }

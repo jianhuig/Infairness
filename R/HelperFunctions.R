@@ -177,3 +177,7 @@ trunc.cub <- function(X, x) {
 
   ((X > x) * (X - x))^3
 }
+
+expit <- function(x) {
+  exp(x) / (1 + exp(x))
+}

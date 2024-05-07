@@ -3,6 +3,8 @@
 export(DataGeneration)
 export(FitParametricCalibration)
 export(Infairness)
+export(Infairness_nobasis)
+export(Influence_curve)
 export(NaturalSplineBasis)
 export(RidgeRegression)
 export(SupervisedFairness)

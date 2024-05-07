@@ -13,7 +13,6 @@
 #' Default is logistic model.
 #' possible options: "correct", "incorrect outcome", "incorrect outcome and imputation 1", and "incorrect outcome and imputation 2".
 #' @param b0 Vector of parameters to generate Y.
-#' @param n_class Number of class in the protected attribute. Default is two
 #' @param p Number of covariates. Default is 10.
 #' @param rho Correlation between covariates. Default is 0.2.
 #' @return Data.frame.
@@ -26,18 +25,13 @@ DataGeneration <- function(n_labeled,
                            b0 = NULL,
                            b1 = NULL,
                            p = 10,
-                           rho = 0.4,
-                           n_class = 2) {
+                           rho = 0.4) {
   # Total sample size.
   N_total <- n_labeled + N_unlabeled
-
+  
   # Generate Group Membership
-  A_total <- round(N_total * prot_att_prevalence)
-  N_total <- sum(A_total)
-  A <- sample(unlist(lapply(seq_along(A_total), function(i) rep(i, A_total[i]))), N_total,
-    replace = FALSE
-  )
-
+  A <- rbinom(N_total, 1, prot_att_prevalence)
+  
   # Generate Covariates
   id_matrix <- diag(p)
   ar_one_matrix <- rho^abs(row(id_matrix) - col(id_matrix))
@@ -45,58 +39,56 @@ DataGeneration <- function(n_labeled,
   mu <- rep(0, p)
   X <- cbind(1, MASS::mvrnorm(N_total, mu, Sigma = sigma))
   colnames(X) <- paste0("X_", 0:p)
-
+  
   # Linear Predictor
   lin_pred <- X %*% t(b0)
-  # epsilon logistic
-  eps_logistic <- rlogis(N_total)
-  # epsilon extreme
-  eps_extreme <- evd::rgumbel(N_total, -2, 0.3)
-
+  
   # Generate Y
   if (model == "correct") {
     Y <- rep(NA, N_total)
     S <- plogis(lin_pred)
-    for (a in 1:n_class) {
-      Y[A == a] <- rbinom(sum(A == a), 1, S[A == a, a])
+    for (a in c(0,1)) {
+      Y[A == a] <- rbinom(sum(A == a), 1, S[A == a, (a+1)])
     }
   }
-  if (model == "incorrect outcome") {
+  if (model == "misspecified 1") {
     Y <- rep(NA, N_total)
-    S <- plogis(lin_pred)
-    for (a in 1:n_class) {
-      lin_pred_new <- cbind(1, ns.basis(S[,a], 3)) %*% b1[a,]
-      S_new <- plogis(lin_pred_new)
-      Y[A == a] <- rbinom(sum(A == a), 1, S_new[A == a])
+    S <- plogis(lin_pred + 0.2*(X[, 2])^2 -0.1*(X[, 3])^3 +0.1* X[, 5]*X[, 6])
+    for (a in c(0,1)) {
+      Y[A == a] <- rbinom(sum(A == a), 1, S[A == a, (a+1)])
     }
   }
-  if (model == "incorrect outcome and imputation 1") {
+  if (model == "misspecified 2") {
     Y <- rep(NA, N_total)
-    S <- tanh(lin_pred) # first layer
-    for (a in 1:n_class) {
-      lin_pred_new <- cbind(1, tanh(lin_pred)[,a]) %*% b1[a,]
-      S_new <- plogis(lin_pred_new)
-      Y[A == a] <- rbinom(sum(A == a), 1, S_new[A == a]) 
+    for (a in c(0,1)) {
+      S <- exp(-lin_pred[,a + 1]^2)
+      Y[A == a] <- rbinom(sum(A == a), 1, S[A == a])
     }
   }
-  if (model == "incorrect outcome and imputation 2") {
+  if (model == "misspecified 3") {
     Y <- rep(NA, N_total)
-
-    for (a in 1:n_class) {
-      Y[A == a] <- ifelse(
-        lin_pred[A == a, a] + X[A == a, 2]^2 + X[A == a, 3]^2 + ((exp(-2 - 3 * X[, 5] - 3 * X[, 6]))[A == a]) * eps_extreme[A == a] > 0, 1, 0
-      )
+    lin_pred2 <- X %*% t(b1)
+    for (a in c(0,1)) {
+      S <- plogis(2*tanh(lin_pred[,a + 1]) + 0.3*tanh(lin_pred2[,a + 1]) - 1)
+      Y[A == a] <- rbinom(sum(A == a), 1, S[A == a])
     }
   }
-
-
+  if (model == "misspecified 4") {
+    Y <- rep(NA, N_total)
+    for (a in c(0,1)) {
+      Y[A == a] <-  ifelse(lin_pred[A==a, a + 1] > 0, 1, 0) 
+    }
+  }
+  
+  
+  
   # Induce missingness.
   Y_miss <- Y
   Y_miss[sample(c(1:N_total), N_unlabeled, replace = F)] <- NA
-
+  
   # Simulated data.
   my_data <- cbind(Y = Y, A = A, Y_miss = Y_miss, X[, -1])
   my_data <- data.frame(my_data)
-
+  
   return(my_data)
 }
