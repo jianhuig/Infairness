@@ -6,7 +6,7 @@
 #' @param weights Numeric vector of weights.
 #' @param family Exponential family of interest.
 #' @param exponents Sequence of exponents for generating lambda values.
-#' @importFrom glmnet glmnet
+#' @importFrom glmnet glmnet cv.glmnet
 #' @export
 #' @return Vector containing regression coefficients.
 #'
@@ -35,7 +35,7 @@ RidgeRegression <- function(X,
   lambdas <- c(warm_start_lambdas, original_lambdas)
 
   cv_fit <- tryCatch(
-    cv.glmnet(X, y,
+    glmnet::cv.glmnet(X, y,
       weights = weights, alpha = 0, lambda = lambdas,
       family = family
     ),

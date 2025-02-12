@@ -11,7 +11,6 @@ devtools::install_github(repo = "https://github.com/jianhuig/SS-Fairness-Audit")
 ```{R}
 library(SSFairnessAudit)
 library(dplyr)
-library(glmnet)
 
 set.seed(123)
 
