@@ -1,5 +1,5 @@
 # Purpose: Helper functions,
-# Updated: 2022-08-31
+# Updated: 2025-02-12
 
 #' Parametric calibration models.
 #'
@@ -31,10 +31,6 @@ FitParametricCalibration <- function(Y_labeled,
     imp_unlabeled <- expit(cbind(1, S_unlabeled) %*%
       param_model)
   } else {
-    # cat("leng1",length(Y_labeled[A_labeled == A_val]))
-    # cat("leng2",length(log(S_labeled[A_labeled == A_val])))
-    # cat("leng3",length(log(1 - S_labeled[A_labeled == A_val]))
-
     param_model <- glm(
       Y_labeled[A_labeled == A_val] ~
         log(S_labeled[A_labeled == A_val]) +
@@ -48,6 +44,8 @@ FitParametricCalibration <- function(Y_labeled,
 
   return(imp_unlabeled)
 }
+
+# Compute all the metrics
 
 get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
   if (is.null(W)) {
@@ -119,7 +117,8 @@ sum.I <- function(yy, FUN, Yi, Vi = NULL, ties.method = "first") {
     yy <- -yy
     Yi <- -Yi
   }
-  pos <- rank(c(yy, Yi), ties.method = ties.method)[1:length(yy)] - rank(yy, ties.method = ties.method)
+  pos <- rank(c(yy, Yi), ties.method = ties.method)[1:length(yy)] -
+    rank(yy, ties.method = ties.method)
   if (substring(FUN, 2, 2) == "=") pos <- length(Yi) - pos
   if (!is.null(Vi)) {
     if (substring(FUN, 2, 2) == "=") tmpind <- order(-Yi) else tmpind <- order(Yi)
@@ -165,10 +164,6 @@ ns.basis <- function(X, nk) {
   }
   return(basis)
 }
-
-############################
-### Natural Spline Basis ###
-############################
 
 # Computes the truncated cubic
 trunc.cub <- function(X, x) {

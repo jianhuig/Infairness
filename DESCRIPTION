@@ -1,4 +1,4 @@
-Package: Infairness
+Package: SSFairnessAudit
 Type: Package
 Title: What the Package Does (Title Case)
 Version: 0.1.0
@@ -15,4 +15,4 @@ Imports:
     evd,
     tibble
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
