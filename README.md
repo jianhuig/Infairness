@@ -17,7 +17,7 @@ set.seed(123)
 dat <- DataGeneration(n_labeled = 1e3,
                       N_unlabeled = 1e4,
                       prot_att_prevalence = 0.5,
-                      model = "misspecified 1",
+                      model = "scenario 1",
                       rho = 0.4)
                       
 
@@ -25,7 +25,7 @@ dat <- DataGeneration(n_labeled = 1e3,
 indep <- DataGeneration(n_labeled = 3e3,
                       N_unlabeled = 0,
                       prot_att_prevalence = 0.5,
-                      model = "misspecified 1",
+                      model = "scenario 1",
                       rho = 0.4)
                       
 # Train Logistic Regression Model
