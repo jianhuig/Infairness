@@ -1,4 +1,4 @@
-# Semi-supervised Fairness Aduiting
+# Reliable fairness auditing with semi-supervised inference
 
 
 # Installation
