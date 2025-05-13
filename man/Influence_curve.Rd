@@ -7,13 +7,20 @@
 Influence_curve(pest, Y, S, A, m = NULL, threshold = 0.5, method)
 }
 \arguments{
+\item{pest}{Data frame containing the estimated metrics.}
+
 \item{Y}{Outcome in labeled dataset.}
 
 \item{S}{Model score in labeled dataset.}
 
 \item{A}{Group indicator in labeled dataset.}
 
-\item{threshold}{Threshold for classification based on the model score Default value is 0.5.}
+\item{m}{Imputed outcome in unlabeled dataset.}
+
+\item{threshold}{Threshold for classification based on the model score
+Default value is 0.5.}
+
+\item{method}{Method used for estimating the metrics.}
 }
 \description{
 Influence Curves

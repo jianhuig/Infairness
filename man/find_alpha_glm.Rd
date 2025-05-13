@@ -7,9 +7,10 @@
 find_alpha_glm(
   Y,
   covariates_matrix,
-  additional_matrix,
+  additional_matrix = NULL,
   gamma = 10,
-  weights = NULL
+  weights = NULL,
+  k = 10
 )
 }
 \arguments{

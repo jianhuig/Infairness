@@ -4,14 +4,7 @@
 \alias{DataGeneration}
 \title{Data generation.}
 \usage{
-DataGeneration(
-  n_labeled,
-  N_unlabeled,
-  prot_att_prevalence,
-  model = "correct",
-  p = 10,
-  rho = 0.4
-)
+DataGeneration(n_labeled, N_unlabeled, prot_att_prevalence, model, rho = 0.4)
 }
 \arguments{
 \item{n_labeled}{Number of labeled examples.}
@@ -24,10 +17,7 @@ should be equal to the number of class. If the number of class is two,
 the length of this vector can either be one or two.}
 
 \item{model}{Indicator to generate from which model.
-Default is correct model.
-possible options: "correct", "misspecified 1", "misspecified 2", "misspecified 3", "t1e".}
-
-\item{p}{Number of covariates. Default is 10.}
+possible options: "misspecified 1", "misspecified 2"}
 
 \item{rho}{Correlation between covariates. Default is 0.4.}
 }

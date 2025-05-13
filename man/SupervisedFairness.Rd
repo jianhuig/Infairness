@@ -4,7 +4,7 @@
 \alias{SupervisedFairness}
 \title{Supervised fairness estimation.}
 \usage{
-SupervisedFairness(Y, S, A, threshold = 0.5, W = NULL)
+SupervisedFairness(Y, S, A, threshold = 0.5)
 }
 \arguments{
 \item{Y}{Outcome in the observed dataset.}
@@ -15,8 +15,6 @@ SupervisedFairness(Y, S, A, threshold = 0.5, W = NULL)
 
 \item{threshold}{Threshold for classification based on the model score.
 Default value is 0.5.}
-
-\item{W}{Weight. Default is Null.}
 }
 \description{
 Supervised fairness estimation.

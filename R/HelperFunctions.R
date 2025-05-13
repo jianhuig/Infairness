@@ -66,7 +66,6 @@ get_metric <- function(Y, S, A, threshold = 0.5) {
     bs <- mu_S2 - 2 * mu_SY + mu_Y
 
     out <- c(out, tpr, fpr, ppv, npv, f1, acc, bs)
-    print(out)
     
   }
   if (length(class) == 2) {

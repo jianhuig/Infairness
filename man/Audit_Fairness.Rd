@@ -11,7 +11,7 @@ Audit_Fairness(
   threshold = 0.5,
   method = "semi-supervised",
   X = NULL,
-  basis = "ridge(S + X)",
+  basis = "Poly(S)",
   ...
 )
 }
@@ -32,8 +32,7 @@ Default is 0.5.}
 setting. Default is NULL.}
 
 \item{basis}{Basis expansion method for score augmentation. Options include
-"Poly(S)", "Poly(S) + X", "Spline(S)", "Spline(S) + X", "glm(S)",
-"glm(S + X)", "ridge(S)", "ridge(S + X)". Default is "ridge(S + X)".}
+"Poly(S)", "Poly(S, X)"}
 
 \item{...}{Additional parameters passed to `SSFairness()`.}
 }

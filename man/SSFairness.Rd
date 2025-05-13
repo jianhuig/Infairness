@@ -4,16 +4,7 @@
 \alias{SSFairness}
 \title{Semi-supervised fairness estimation.}
 \usage{
-SSFairness(
-  Y,
-  S,
-  A,
-  threshold = 0.5,
-  X = NULL,
-  basis = "Poly(S)",
-  nknots = 3,
-  W = NULL
-)
+SSFairness(Y, S, A, threshold = 0.5, X = NULL, basis = "Poly(S)")
 }
 \arguments{
 \item{Y}{Outcome, can contain missing values.}
@@ -28,12 +19,7 @@ Default value is 0.5.}
 \item{X}{Optional covariates matrix to be adjusted in the semi-supervised setting.
 Default is NULL.}
 
-\item{basis}{Different ways to construct W. Default is "ridge(S + X)". Other
-options are "Poly(S)", "Poly(S) + X", "Spline(S)", "Spline(S) + X", "glm(S)",
-"glm(S + X)", "ridge(S)", "ridge(S + X)"}
-
-\item{nknots}{Number of knots (only used when basis = "Spline(S)" or
-"Spline(S) + X"). Default is 3. Ignored otherwise.}
+\item{basis}{Different ways to construct W. Options are "Poly(S)", "Poly(S, X)"}
 }
 \value{
 List of estimated fairness metrics and their variances.

@@ -7,10 +7,9 @@
 RidgeRegression(
   X,
   y,
-  coef,
+  coef = NULL,
   weights = NULL,
-  family = "binomial",
-  exponents = seq(1.05, 2.5, length.out = 100)
+  exponents = seq(1 + 0.05, 2, length.out = 100)
 )
 }
 \arguments{
@@ -22,9 +21,9 @@ RidgeRegression(
 
 \item{weights}{Numeric vector of weights.}
 
-\item{family}{Exponential family of interest.}
-
 \item{exponents}{Sequence of exponents for generating lambda values.}
+
+\item{family}{Exponential family of interest.}
 }
 \value{
 Vector containing regression coefficients.
