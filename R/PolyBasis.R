@@ -9,67 +9,124 @@
 #'
 #' @export
 
-find_alpha_glm <- function(Y, covariates_matrix, additional_matrix, gamma = 10,
-                           weights = NULL) {
+# find_alpha_glm <- function(Y, covariates_matrix, additional_matrix = NULL, 
+#                            gamma = 10, weights = NULL) {
+#   n <- length(Y)
+# 
+#   # cross fitting
+#   # supervised theta
+#   theta_part1 <- glm(
+#     Y[1:round(n / 2)] ~ cbind(
+#       covariates_matrix[1:round(n / 2), ],
+#       additional_matrix[1:round(n / 2), ]
+#     ),
+#     family = binomial(link = "logit"),
+#     weights = weights[1:round(n / 2)]
+#   )
+#   theta_part2 <- glm(
+#     Y[(round(n / 2) + 1):n] ~ cbind(
+#       covariates_matrix[(round(n / 2) + 1):n, ],
+#       additional_matrix[(round(n / 2) + 1):n, ]
+#     ),
+#     family = binomial(link = "logit"),
+#     weights = weights[(round(n / 2) + 1):n]
+#   )
+# 
+#   exp_numerator_part1 <- as.vector(exp(cbind(
+#     1, covariates_matrix[1:round(n / 2), ],
+#     additional_matrix[1:round(n / 2), ]
+#   ) %*% theta_part2$coefficients))
+# 
+#   exp_numerator_part2 <- as.vector(exp(cbind(
+#     1, covariates_matrix[(round(n / 2) + 1):n, ],
+#     additional_matrix[(round(n / 2) + 1):n, ]
+#   ) %*% theta_part1$coefficients))
+# 
+#   L_first_derivative_part1 <- (exp_numerator_part1 / (1 + exp_numerator_part1)
+#     - Y[1:round(n / 2)]) * cbind(
+#     1, covariates_matrix[1:round(n / 2), ],
+#     additional_matrix[1:round(n / 2), ]
+#   )
+# 
+#   L_first_derivative_part2 <- (exp_numerator_part2 / (1 + exp_numerator_part2)
+#     - Y[(round(n / 2) + 1):n]) * cbind(
+#     1, covariates_matrix[(round(n / 2) + 1):n, ],
+#     additional_matrix[(round(n / 2) + 1):n, ]
+#   )
+# 
+#   L_first_derivative <- rbind(L_first_derivative_part1, L_first_derivative_part2)
+# 
+#   alpha <- which.min(sapply(
+#     1:gamma,
+#     function(t) {
+#       GBIC_ppo(
+#         L_first_derivative,
+#         covariates_matrix,
+#         additional_matrix,
+#         t
+#       )
+#     }
+#   ))
+# 
+#   return(alpha)
+# }
+
+find_alpha_glm <- function(Y, covariates_matrix, additional_matrix = NULL, 
+                           gamma = 10, weights = NULL, k = 10) {
   n <- length(Y)
-
-  # cross fitting
-  # supervised theta
-  theta_part1 <- glm(
-    Y[1:round(n / 2)] ~ cbind(
-      covariates_matrix[1:round(n / 2), ],
-      additional_matrix[1:round(n / 2), ]
-    ),
-    family = binomial(link = "logit"),
-    weights = weights[1:round(n / 2)]
-  )
-  theta_part2 <- glm(
-    Y[(round(n / 2) + 1):n] ~ cbind(
-      covariates_matrix[(round(n / 2) + 1):n, ],
-      additional_matrix[(round(n / 2) + 1):n, ]
-    ),
-    family = binomial(link = "logit"),
-    weights = weights[(round(n / 2) + 1):n]
-  )
-
-  exp_numerator_part1 <- as.vector(exp(cbind(
-    1, covariates_matrix[1:round(n / 2), ],
-    additional_matrix[1:round(n / 2), ]
-  ) %*% theta_part1$coefficients))
-
-  exp_numerator_part2 <- as.vector(exp(cbind(
-    1, covariates_matrix[(round(n / 2) + 1):n, ],
-    additional_matrix[(round(n / 2) + 1):n, ]
-  ) %*% theta_part2$coefficients))
-
-  L_first_derivative_part1 <- (exp_numerator_part1 / (1 + exp_numerator_part1)
-    - Y[1:round(n / 2)]) * cbind(
-    1, covariates_matrix[1:round(n / 2), ],
-    additional_matrix[1:round(n / 2), ]
-  )
-
-  L_first_derivative_part2 <- (exp_numerator_part2 / (1 + exp_numerator_part2)
-    - Y[(round(n / 2) + 1):n]) * cbind(
-    1, covariates_matrix[(round(n / 2) + 1):n, ],
-    additional_matrix[(round(n / 2) + 1):n, ]
-  )
-
-  L_first_derivative <- rbind(L_first_derivative_part1, L_first_derivative_part2)
-
-  alpha <- which.min(sapply(
-    1:gamma,
-    function(t) {
-      GBIC_ppo(
-        L_first_derivative,
-        covariates_matrix,
-        additional_matrix,
-        t
-      )
-    }
-  ))
-
+  
+  # Define fold sizes (sequential, no shuffling)
+  fold_sizes <- rep(floor(n / k), k) + c(rep(1, n %% k), rep(0, k - n %% k))  # Distribute remainder
+  fold_starts <- c(1, cumsum(fold_sizes[-k]) + 1)
+  fold_ends <- cumsum(fold_sizes)
+  
+  # Matrix to store GBIC for each fold and polynomial order
+  gbic_values <- matrix(NA, nrow = k, ncol = gamma)
+  
+  # 10-fold cross-fitting
+  for (i in 1:k) {
+    test_idx <- fold_starts[i]:fold_ends[i]
+    train_idx <- setdiff(1:n, test_idx)
+    
+    # Fit on training data (9 folds)
+    theta <- glm(
+      Y[train_idx] ~ cbind(covariates_matrix[train_idx, ], 
+                           additional_matrix[train_idx, ]),
+      family = binomial(link = "logit"),
+      weights = weights[train_idx]
+    )
+    
+    # Predict on test data (1 fold)
+    exp_numerator <- as.vector(exp(cbind(
+      1, covariates_matrix[test_idx, ], 
+      additional_matrix[test_idx, ]
+    ) %*% theta$coefficients))
+    
+    # Compute first derivative for this test fold only
+    L_first_derivative_fold <- (exp_numerator / (1 + exp_numerator) - 
+                                  Y[test_idx]) * cbind(
+                                    1, covariates_matrix[test_idx, ], 
+                                    additional_matrix[test_idx, ]
+                                  )
+    
+    # Compute GBIC for each polynomial order using this fold's L_first_derivative
+    gbic_values[i, ] <- sapply(
+      1:gamma,
+      function(t) {
+        GBIC_ppo(L_first_derivative_fold, 
+                 covariates_matrix[test_idx, ] %>% as.matrix(), 
+                 additional_matrix[test_idx, ] %>% as.matrix(), t)
+      }
+    )
+  }
+  
+  # Average GBIC across folds and select alpha
+  mean_gbic <- colMeans(gbic_values)
+  alpha <- which.min(mean_gbic)
+  
   return(alpha)
 }
+
 
 
 # Polynomial basis
