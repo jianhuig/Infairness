@@ -4,12 +4,12 @@
 # Installation
 
 ```{R, eval = FALSE}
-devtools::install_github(repo = "https://github.com/jianhuig/SS-Fairness-Audit")
+devtools::install_github(repo = "https://github.com/jianhuig/Infairness")
 ```
 
 # Example
 ```{R}
-library(SSFairnessAudit)
+library(Infairness)
 library(dplyr)
 
 set.seed(123)
@@ -47,7 +47,7 @@ ss <- Audit_Fairness(Y = dat$Y_miss,
                      S = dat$S,
                      A = dat$A,
                      threshold = 0.5,
-                     method = "semi-supervised",
+                     method = "Infairness",
                      X = dat %>% select(contains("W")))
                       
 

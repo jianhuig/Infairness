@@ -23,7 +23,7 @@ Audit_Fairness <- function(Y,
                            S,
                            A,
                            threshold = 0.5,
-                           method = "semi-supervised",
+                           method = "Infairness",
                            X = NULL,
                            basis = "Poly(S)",
                            ...) {
@@ -34,7 +34,7 @@ Audit_Fairness <- function(Y,
     S_labeled <- S[labeled_ind]
     A_labeled <- A[labeled_ind]
     return(SupervisedFairness(Y_labeled, S_labeled, A_labeled, threshold))
-  } else if (method == "semi-supervised") {
+  } else if (method == "Infairness") {
     return(SSFairness(Y, S, A, threshold, X, basis, ...))
   }
 }
