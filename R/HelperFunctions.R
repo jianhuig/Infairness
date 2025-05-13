@@ -57,11 +57,7 @@ get_metric <- function(Y, S, A, threshold = 0.5) {
     mu_SY <- mean(S[A == i] * Y[A == i])
     mu_S2 <- mean(S[A == i]**2)
     
-    print(paste0("mu_Y: ", mu_Y))
-    print(paste0("mu_D: ", mu_D))
-    print(paste0("mu_DY: ", mu_DY))
     tpr <- mu_DY / mu_Y
-    print(paste0("tpr: ", tpr))
     fpr <- (mu_D - mu_DY) / (1 - mu_Y)
     ppv <- mu_DY / mu_D
     npv <- (1 - mu_D - mu_Y + mu_DY) / (1 - mu_D)
