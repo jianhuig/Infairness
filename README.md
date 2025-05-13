@@ -1,4 +1,4 @@
-# Reliable fairness auditing with semi-supervised inference
+# R package for reliable fairness auditing with semi-supervised inference
 
 
 # Installation
