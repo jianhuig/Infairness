@@ -48,11 +48,10 @@ ss <- Audit_Fairness(Y = dat$Y_miss,
                      A = dat$A,
                      threshold = 0.5,
                      method = "Infairness",
-                     X = dat %>% select(contains("W")))
+                     W = dat %>% select(contains("W")))
                       
 
-# Point Estimate
-                      
+# Point Estimate                      
 sup$est
   Metric     Group0     Group1       Delta
 1    TPR 0.36290323 0.52941176 -0.16650854
