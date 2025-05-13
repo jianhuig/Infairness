@@ -9,10 +9,10 @@
 #' Default is 0.5.
 #' @param method Fairness estimation method. Options are "supervised" or
 #' "semi-supervised". Default is "semi-supervised".
-#' @param X Optional covariates matrix for adjustment in the semi-supervised
+#' @param W Optional covariates matrix for adjustment in the semi-supervised
 #' setting. Default is NULL.
 #' @param basis Basis expansion method for score augmentation. Options include
-#' "Poly(S)", "Poly(S, X)"
+#' "Poly(S)", "Poly(S, W)"
 #' @param ... Additional parameters passed to `SSFairness()`.
 #' @return A list containing the fairness audit results.
 #'
@@ -24,7 +24,7 @@ Audit_Fairness <- function(Y,
                            A,
                            threshold = 0.5,
                            method = "Infairness",
-                           X = NULL,
+                           W = NULL,
                            basis = "Poly(S)",
                            ...) {
   if (method == "supervised") {
@@ -35,6 +35,6 @@ Audit_Fairness <- function(Y,
     A_labeled <- A[labeled_ind]
     return(SupervisedFairness(Y_labeled, S_labeled, A_labeled, threshold))
   } else if (method == "Infairness") {
-    return(SSFairness(Y, S, A, threshold, X, basis, ...))
+    return(SSFairness(Y, S, A, threshold, W, basis, ...))
   }
 }

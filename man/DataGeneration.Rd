@@ -17,7 +17,7 @@ should be equal to the number of class. If the number of class is two,
 the length of this vector can either be one or two.}
 
 \item{model}{Indicator to generate from which model.
-possible options: "misspecified 1", "misspecified 2"}
+possible options: "scenario 1", "scenario 2"}
 
 \item{rho}{Correlation between covariates. Default is 0.4.}
 }

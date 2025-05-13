@@ -4,7 +4,7 @@
 \alias{SSFairness}
 \title{Semi-supervised fairness estimation.}
 \usage{
-SSFairness(Y, S, A, threshold = 0.5, X = NULL, basis = "Poly(S)")
+SSFairness(Y, S, A, threshold = 0.5, W = NULL, basis = "Poly(S)")
 }
 \arguments{
 \item{Y}{Outcome, can contain missing values.}
@@ -16,10 +16,10 @@ SSFairness(Y, S, A, threshold = 0.5, X = NULL, basis = "Poly(S)")
 \item{threshold}{Threshold for classification based on the model score.
 Default value is 0.5.}
 
-\item{X}{Optional covariates matrix to be adjusted in the semi-supervised setting.
+\item{W}{Optional covariates matrix to be adjusted in the semi-supervised setting.
 Default is NULL.}
 
-\item{basis}{Different ways to construct W. Options are "Poly(S)", "Poly(S, X)"}
+\item{basis}{Different ways to construct W. Options are "Poly(S)", "Poly(S, W)"}
 }
 \value{
 List of estimated fairness metrics and their variances.

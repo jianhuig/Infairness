@@ -9,8 +9,8 @@ Audit_Fairness(
   S,
   A,
   threshold = 0.5,
-  method = "semi-supervised",
-  X = NULL,
+  method = "Infairness",
+  W = NULL,
   basis = "Poly(S)",
   ...
 )
@@ -28,11 +28,11 @@ Default is 0.5.}
 \item{method}{Fairness estimation method. Options are "supervised" or
 "semi-supervised". Default is "semi-supervised".}
 
-\item{X}{Optional covariates matrix for adjustment in the semi-supervised
+\item{W}{Optional covariates matrix for adjustment in the semi-supervised
 setting. Default is NULL.}
 
 \item{basis}{Basis expansion method for score augmentation. Options include
-"Poly(S)", "Poly(S, X)"}
+"Poly(S)", "Poly(S, W)"}
 
 \item{...}{Additional parameters passed to `SSFairness()`.}
 }
