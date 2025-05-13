@@ -10,7 +10,7 @@
 #' should be equal to the number of class. If the number of class is two,
 #' the length of this vector can either be one or two.
 #' @param model Indicator to generate from which model.
-#' possible options: "misspecified 1", "misspecified 2"
+#' possible options: "scenario 1", "scenario 2"
 #' @param rho Correlation between covariates. Default is 0.4.
 #' @return Data.frame.
 #' @export
@@ -44,7 +44,7 @@ DataGeneration <- function(n_labeled,
   Y <- rep(NA, N_total)
 
   # Generate Y
-  if (model == "misspecified 1") {
+  if (model == "scenario 1") {
     b0 <- matrix(
       c(
         -4, 1, 1, 0.5, 0.5, rep(0, 6), 0.4, 0.4, 0.4, 0, 0,
@@ -60,7 +60,7 @@ DataGeneration <- function(n_labeled,
       Y[A == a] <- rbinom(sum(A == a), 1, S[A == a, (a + 1)])
     }
   }
-  if (model == "misspecified 2") {
+  if (model == "scenario 2") {
     b0 <- matrix(
       c(
         1.3, 0.4, -0.3, 0.15, -0.15, rep(0, 6), 0.25, -0.2, 0.2, 0, 0,
