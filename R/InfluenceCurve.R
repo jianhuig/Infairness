@@ -1,12 +1,16 @@
 # Purpose: Influence functions for fairness estimation
-# Updated: 2024-03-01
+# Updated: 2025-05-12
 
 #' Influence Curves
 #'
+#' @param pest Data frame containing the estimated metrics.
 #' @param Y Outcome in labeled dataset.
 #' @param S Model score in labeled dataset.
 #' @param A Group indicator in labeled dataset.
-#' @param threshold Threshold for classification based on the model score Default value is 0.5.
+#' @param m Imputed outcome in unlabeled dataset.
+#' @param threshold Threshold for classification based on the model score
+#' Default value is 0.5.
+#' @param method Method used for estimating the metrics.
 #' @export
 
 Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
@@ -22,22 +26,18 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
     rho <- sum(A == i) / length(A)
     if (method == "supervised") {
       # influence curve for TPR & FNR
-      out[out$Metric == "TPR", paste0("Group", i)] <- out[
-        out$Metric == "FNR",
-        paste0("Group", i)
-      ] <- (rho)^(-2) * (mu_Y)^(-2) *
-        sum(Y * (D - pest[pest$Metric == "TPR", paste0("Group", i)])**2 * C) /
-        (length(Y)**2)
+      out[out$Metric == "TPR", paste0("Group", i)] <-
+        (rho)^(-2) * (mu_Y)^(-2) *
+          sum(Y * (D - pest[pest$Metric == "TPR", paste0("Group", i)])**2 * C) /
+          (length(Y)**2)
 
-      # influence curve for FPR & TNR
-      out[out$Metric == "FPR", paste0("Group", i)] <- out[
-        out$Metric == "TNR",
-        paste0("Group", i)
-      ] <- (rho)^(-2) *
-        (1 - mu_Y)^(-2) * sum((1 - Y) * (D - pest[
-          pest$Metric == "FPR",
-          paste0("Group", i)
-        ])**2 * C) / (length(Y)**2)
+      # influence curve for FPR
+      out[out$Metric == "FPR", paste0("Group", i)] <-
+        (rho)^(-2) *
+          (1 - mu_Y)^(-2) * sum((1 - Y) * (D - pest[
+            pest$Metric == "FPR",
+            paste0("Group", i)
+          ])**2 * C) / (length(Y)**2)
 
       # influence curve for PPV
       out[out$Metric == "PPV", paste0("Group", i)] <-
@@ -79,25 +79,21 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
           (length(Y)**2)
     } else {
       # influence curve for TPR & FNR
-      out[out$Metric == "TPR", paste0("Group", i)] <- out[
-        out$Metric == "FNR",
-        paste0("Group", i)
-      ] <- (rho)^(-2) * (mu_Y)^(-2) *
-        sum(((Y - m)**2) * (D - pest[
-          pest$Metric == "TPR",
-          paste0("Group", i)
-        ])**2 * C) /
-        (length(Y)**2)
+      out[out$Metric == "TPR", paste0("Group", i)] <-
+        (rho)^(-2) * (mu_Y)^(-2) *
+          sum(((Y - m)**2) * (D - pest[
+            pest$Metric == "TPR",
+            paste0("Group", i)
+          ])**2 * C) /
+          (length(Y)**2)
 
       # influence curve for FPR & TNR
-      out[out$Metric == "FPR", paste0("Group", i)] <- out[
-        out$Metric == "TNR",
-        paste0("Group", i)
-      ] <- (rho)^(-2) *
-        (1 - mu_Y)^(-2) * sum(((Y - m)**2) * (D - pest[
-          pest$Metric == "FPR",
-          paste0("Group", i)
-        ])**2 * C) / (length(Y)**2)
+      out[out$Metric == "FPR", paste0("Group", i)] <-
+        (rho)^(-2) *
+          (1 - mu_Y)^(-2) * sum(((Y - m)**2) * (D - pest[
+            pest$Metric == "FPR",
+            paste0("Group", i)
+          ])**2 * C) / (length(Y)**2)
 
       # influence curve for PPV
       out[out$Metric == "PPV", paste0("Group", i)] <-
@@ -133,19 +129,7 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
     }
   }
 
-  if (length(class) == 2) {
-    out[, "Delta"] <- rowSums(out[, paste0("Group", class)])
-  } else {
-    k <- length(class)
-    pest_mean <- rowMeans(pest[, paste0("Group", class)])
-    out[, "var"] <- 4 / (k - 1)^2 *
-      rowSums((pest[, paste0("Group", class)] - pest_mean)^2
-        * out[, paste0("Group", class)])
-    out[, "gei"] <- 1 / k^2 * rowSums(
-      ((pest[, paste0("Group", class)] - pest_mean) / (pest_mean)^2 -
-        2 * pest[, "gei"] / pest_mean)^2 * out[, paste0("Group", class)]
-    )
-  }
+  out[, "Delta"] <- rowSums(out[, paste0("Group", class)])
 
   return(out)
 }
