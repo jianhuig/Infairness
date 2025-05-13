@@ -1,95 +1,126 @@
-# R package for reliable fairness auditing with semi-supervised inference
+# 📦 Infairness: Reliable Fairness Auditing with Semi-Supervised Inference
 
+This R package provides tools for evaluating group fairness metrics using both supervised and semi-supervised estimators. It implements the methodology described in our paper:  
+**“Reliable Fairness Auditing with Semi-Supervised Inference.”**
 
-# Installation
+---
 
-```{R, eval = FALSE}
-devtools::install_github(repo = "https://github.com/jianhuig/Infairness")
+## 🚀 Installation
+
+To install the development version directly from GitHub:
+
+```r
+devtools::install_github("jianhuig/Infairness")
 ```
 
-# Example
-```{R}
+---
+
+## 📘 Example Usage
+
+Here is a minimal example using simulated data to compare supervised and semi-supervised fairness estimates:
+
+```r
 library(Infairness)
 library(dplyr)
 
+# Generate semi-supervised dataset
 set.seed(123)
-
 dat <- DataGeneration(n_labeled = 1e3,
                       N_unlabeled = 1e4,
                       prot_att_prevalence = 0.5,
                       model = "scenario 1",
                       rho = 0.4)
-                      
 
-# Indepedent Training Dataset
+# Independent training data for prediction model
 indep <- DataGeneration(n_labeled = 3e3,
-                      N_unlabeled = 0,
-                      prot_att_prevalence = 0.5,
-                      model = "scenario 1",
-                      rho = 0.4)
-                      
-# Train Logistic Regression Model
-model_0 <- glm(Y ~ ., family = binomial(), data = indep %>% filter(A == 0) %>% select(-Y_miss, -A, -W_1:-W_5))
-model_1 <- glm(Y ~ ., family = binomial(), data = indep %>% filter(A == 1) %>% select(-Y_miss, -A, -W_1:-W_5))
-dat$S <- rep(NA, nrow(dat))
+                        N_unlabeled = 0,
+                        prot_att_prevalence = 0.5,
+                        model = "scenario 1",
+                        rho = 0.4)
+
+# Fit group-specific logistic regression
+model_0 <- glm(Y ~ ., family = binomial(), data = indep %>% filter(A == 0) %>% select(-Y_miss, -A, -starts_with("W")))
+model_1 <- glm(Y ~ ., family = binomial(), data = indep %>% filter(A == 1) %>% select(-Y_miss, -A, -starts_with("W")))
+
+# Predict risk scores
+dat$S <- NA
 dat$S[dat$A == 0] <- predict(model_0, newdata = dat %>% filter(A == 0), type = "response")
 dat$S[dat$A == 1] <- predict(model_1, newdata = dat %>% filter(A == 1), type = "response")
-                      
-# Supervised Estimation                      
+
+# Supervised Estimation
 sup <- Audit_Fairness(Y = dat$Y_miss,
                       S = dat$S,
                       A = dat$A,
                       threshold = 0.5,
                       method = "supervised")
 
-# Semi-supervised Estimation
+# Semi-Supervised Estimation
 ss <- Audit_Fairness(Y = dat$Y_miss,
                      S = dat$S,
                      A = dat$A,
                      threshold = 0.5,
                      method = "Infairness",
                      W = dat %>% select(contains("W")))
-                      
-
-# Point Estimate                      
-sup$est
-  Metric     Group0     Group1       Delta
-1    TPR 0.36290323 0.52941176 -0.16650854
-2    FPR 0.04846939 0.06027397 -0.01180458
-3    PPV 0.70312500 0.74117647 -0.03805147
-4    NPV 0.82522124 0.85964912 -0.03442788
-5     F1 0.47872340 0.61764706 -0.13892365
-6    ACC 0.81007752 0.83884298 -0.02876546
-7     BS 0.13250175 0.11684682  0.01565493
-
-ss$est
-  Metric     Group0    Group1       Delta
-1    TPR 0.40404109 0.51458165 -0.11054056
-2    FPR 0.05940048 0.04898599  0.01041449
-3    PPV 0.69860671 0.77169637 -0.07308966
-4    NPV 0.82242849 0.85892900 -0.03650051
-5     F1 0.51197820 0.61744162 -0.10546342
-6    ACC 0.80422735 0.84476843 -0.04054108
-7     BS 0.13552039 0.11593314  0.01958725
-
-# Variance Estimate
-sup$var
-  Metric       Group0       Group1        Delta
-1    TPR 1.864552e-03 2.093571e-03 0.0039581232
-2    FPR 1.176533e-04 1.551809e-04 0.0002728342
-3    PPV 3.261566e-03 2.256870e-03 0.0055184357
-4    NPV 3.190955e-04 3.023872e-04 0.0006214827
-5     F1 2.019311e-03 1.600271e-03 0.0036195822
-6    ACC 2.981627e-04 2.793088e-04 0.0005774714
-7     BS 9.944322e-05 8.947343e-05 0.0001889167
-
-ss$var
-  Metric       Group0       Group1        Delta
-1    TPR 8.662682e-04 1.039611e-03 0.0019058788
-2    FPR 7.273322e-05 1.038688e-04 0.0001766020
-3    PPV 3.031006e-03 2.102220e-03 0.0051332264
-4    NPV 2.671569e-04 2.643316e-04 0.0005314885
-5     F1 1.182558e-03 1.083128e-03 0.0022656857
-6    ACC 2.516233e-04 2.444778e-04 0.0004961012
-7     BS 8.444773e-05 7.622762e-05 0.0001606753
 ```
+
+---
+
+## 📊 Output: Point Estimates
+
+### Supervised
+
+| Metric | Group 0 | Group 1 | Delta |
+|--------|---------|---------|--------|
+| TPR    | 0.3629  | 0.5294  | -0.1665 |
+| FPR    | 0.0485  | 0.0603  | -0.0118 |
+| PPV    | 0.7031  | 0.7412  | -0.0381 |
+| NPV    | 0.8252  | 0.8596  | -0.0344 |
+| F1     | 0.4787  | 0.6176  | -0.1389 |
+| ACC    | 0.8101  | 0.8388  | -0.0288 |
+| BS     | 0.1325  | 0.1168  |  0.0157 |
+
+### Semi-Supervised
+
+| Metric | Group 0 | Group 1 | Delta |
+|--------|---------|---------|--------|
+| TPR    | 0.4040  | 0.5146  | -0.1105 |
+| FPR    | 0.0594  | 0.0490  |  0.0104 |
+| PPV    | 0.6986  | 0.7717  | -0.0731 |
+| NPV    | 0.8224  | 0.8589  | -0.0365 |
+| F1     | 0.5120  | 0.6174  | -0.1055 |
+| ACC    | 0.8042  | 0.8448  | -0.0405 |
+| BS     | 0.1355  | 0.1159  |  0.0196 |
+
+---
+
+## 📈 Output: Variance Estimates
+
+### Supervised
+
+| Metric | Group 0     | Group 1     | Delta      |
+|--------|-------------|-------------|------------|
+| TPR    | 1.86e-03    | 2.09e-03    | 3.96e-03   |
+| FPR    | 1.18e-04    | 1.55e-04    | 2.73e-04   |
+| PPV    | 3.26e-03    | 2.26e-03    | 5.52e-03   |
+| NPV    | 3.19e-04    | 3.02e-04    | 6.21e-04   |
+| F1     | 2.02e-03    | 1.60e-03    | 3.62e-03   |
+| ACC    | 2.98e-04    | 2.79e-04    | 5.77e-04   |
+| BS     | 9.94e-05    | 8.95e-05    | 1.89e-04   |
+
+### Semi-Supervised
+
+| Metric | Group 0     | Group 1     | Delta      |
+|--------|-------------|-------------|------------|
+| TPR    | 8.66e-04    | 1.04e-03    | 1.91e-03   |
+| FPR    | 7.27e-05    | 1.04e-04    | 1.77e-04   |
+| PPV    | 3.03e-03    | 2.10e-03    | 5.13e-03   |
+| NPV    | 2.67e-04    | 2.64e-04    | 5.31e-04   |
+| F1     | 1.18e-03    | 1.08e-03    | 2.27e-03   |
+| ACC    | 2.52e-04    | 2.44e-04    | 4.96e-04   |
+| BS     | 8.44e-05    | 7.62e-05    | 1.61e-04   |
+
+---
+
+## 📬 Contact
+
+For questions, suggestions, or contributions, please contact: jianhui.gao@mail.utoronto.ca
