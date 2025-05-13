@@ -7,9 +7,9 @@
 #' @param A Group indicator.
 #' @param threshold Threshold for classification based on the model score.
 #' Default value is 0.5.
-#' @param X Optional covariates matrix to be adjusted in the semi-supervised setting.
+#' @param W Optional covariates matrix to be adjusted in the semi-supervised setting.
 #' Default is NULL.
-#' @param basis Different ways to construct W. Options are "Poly(S)", "Poly(S, X)"
+#' @param basis Different ways to construct W. Options are "Poly(S)", "Poly(S, W)"
 #' @return List of estimated fairness metrics and their variances.
 #' @export
 #'
@@ -18,7 +18,7 @@ SSFairness <- function(Y,
                        S,
                        A,
                        threshold = 0.5,
-                       X = NULL,
+                       W = NULL,
                        basis = "Poly(S)") {
 
   labeled_ind <- which(!is.na(Y))
@@ -38,9 +38,9 @@ SSFairness <- function(Y,
   A_unlabeled <- A[-labeled_ind]
   C_unlabeled <- C[-labeled_ind]
 
-  if (!is.null(X)) {
-    X_labeled <- X[labeled_ind, , drop = FALSE]
-    X_unlabeled <- X[-labeled_ind, , drop = FALSE]
+  if (!is.null(W)) {
+    W_labeled <- W[labeled_ind, , drop = FALSE]
+    W_unlabeled <- W[-labeled_ind, , drop = FALSE]
   }
 
   nclass <- sort(unique(A))
@@ -117,7 +117,7 @@ SSFairness <- function(Y,
       m_labeled[A_labeled == a] <- imputed_labeled
     }
 
-  } else if (basis == "Poly(S, X)") {
+  } else if (basis == "Poly(S, W)") {
     # Augmentation in each class
     m_unlabeled <- S_unlabeled # imputed values
     m_labeled <- S_labeled # imputed values
@@ -128,16 +128,16 @@ SSFairness <- function(Y,
         Y = Y_labeled[A_labeled == a],
         covariates_matrix = cbind(
           S_labeled[A_labeled == a],
-          X_labeled[A_labeled == a, ]
+          W_labeled[A_labeled == a, ]
         ) %>% as.matrix(),
         additional_matrix = C_labeled[A_labeled == a] %>% as.matrix()
       )
       # print(alpha)
       alphas <- c(alphas, alpha)
 
-      basis_labeled <- polynomial(cbind(S_labeled, X_labeled) %>% 
+      basis_labeled <- polynomial(cbind(S_labeled, W_labeled) %>% 
                                     as.data.frame(), alpha)
-      basis_unlabeled <- polynomial(cbind(S_unlabeled, X_unlabeled) %>% 
+      basis_unlabeled <- polynomial(cbind(S_unlabeled, W_unlabeled) %>% 
                                       as.data.frame(), alpha)
 
       gamma <- tryCatch(
