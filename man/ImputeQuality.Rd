@@ -10,12 +10,13 @@ ImputeQuality(
   A,
   threshold = 0.5,
   X = NULL,
-  basis = "Poly(S)",
+  basis = c("Poly(S)", "Poly(S)"),
   k = 10,
   alphas = NULL,
   ...
 )
 }
 \description{
-Imputation Quality
+Convenience wrapper around the shared semi-supervised imputation routine.
+For new code, prefer `SSFairness(..., return_imputation_quality = TRUE)`.
 }

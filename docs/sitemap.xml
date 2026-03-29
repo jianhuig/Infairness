@@ -4,6 +4,9 @@
     <loc>/404.html</loc>
   </url>
   <url>
+    <loc>/LICENSE-text.html</loc>
+  </url>
+  <url>
     <loc>/authors.html</loc>
   </url>
   <url>
@@ -46,6 +49,15 @@
     <loc>/reference/find_alpha_glm.html</loc>
   </url>
   <url>
+    <loc>/reference/get_metric.html</loc>
+  </url>
+  <url>
     <loc>/reference/index.html</loc>
+  </url>
+  <url>
+    <loc>/reference/sum.I.html</loc>
+  </url>
+  <url>
+    <loc>/reference/trunc.cub.html</loc>
   </url>
 </urlset>

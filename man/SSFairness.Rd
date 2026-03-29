@@ -14,6 +14,8 @@ SSFairness(
   nknots = 3,
   W = NULL,
   k = 10,
+  cross_fit_variance = FALSE,
+  return_imputation_quality = FALSE,
   ...
 )
 }
@@ -30,15 +32,26 @@ Default value is 0.5.}
 \item{X}{Optional covariates matrix to be adjusted in the semi-supervised setting.
 Default is NULL.}
 
-\item{basis}{Vector, different ways to construct W. Default is "c("Poly(S)", "Poly(S)"))". Other
-options are "Poly(S)", "Poly(S) + X", "Spline(S)", "Spline(S) + X", "glm(S)",
-"glm(S + X)", "ridge(S)", "ridge(S + X)"}
+\item{basis}{Character vector giving the basis strategy used within each
+group. If a single value is supplied, it is reused for every group.
+Supported values in the current implementation include `"Poly(S)"`,
+`"Poly(S) + X"`, `"Interaction"`, `"Beta"`, and `"kernel"`.}
 
 \item{nknots}{Number of knots (only used when basis = "Spline(S)" or
 "Spline(S) + X"). Default is 3. Ignored otherwise.}
+
+\item{cross_fit_variance}{Logical; if `TRUE`, use cross-fitted labeled
+imputations when estimating the variance through the shared imputation-quality
+path.}
+
+\item{return_imputation_quality}{Logical; if `TRUE`, attach imputation
+quality metrics and the labeled/unlabeled imputations to the result.}
 }
 \value{
 List of estimated fairness metrics and their variances.
+The returned list always contains `est`, `var`, and `alpha`. When
+`return_imputation_quality = TRUE`, it also contains `imp_quality`,
+`m_labeled`, and `m_unlabeled`.
 }
 \description{
 Semi-supervised fairness estimation.

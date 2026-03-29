@@ -47,9 +47,8 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">RidgeRegression</span><span class="op">(</span></span>
 <span>  <span class="va">X</span>,</span>
 <span>  <span class="va">y</span>,</span>
-<span>  coef <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  exponents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fl">0.05</span>, <span class="fl">2.5</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span>  exponents <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1.05</span>, <span class="fl">2.5</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -63,16 +62,16 @@
 <dd><p>Numeric outcome vector.</p></dd>
 
 
-<dt>coef</dt>
-<dd><p>Coefficient for scaling lambda values.</p></dd>
-
-
 <dt>weights</dt>
 <dd><p>Numeric vector of weights.</p></dd>
 
 
 <dt>exponents</dt>
 <dd><p>Sequence of exponents for generating lambda values.</p></dd>
+
+
+<dt>coef</dt>
+<dd><p>Coefficient for scaling lambda values.</p></dd>
 
 
 <dt>family</dt>

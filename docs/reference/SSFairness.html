@@ -54,6 +54,8 @@
 <span>  nknots <span class="op">=</span> <span class="fl">3</span>,</span>
 <span>  W <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  k <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  cross_fit_variance <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  return_imputation_quality <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -83,21 +85,36 @@ Default is NULL.</p></dd>
 
 
 <dt>basis</dt>
-<dd><p>Vector, different ways to construct W. Default is "c("Poly(S)", "Poly(S)"))". Other
-options are "Poly(S)", "Poly(S) + X", "Spline(S)", "Spline(S) + X", "glm(S)",
-"glm(S + X)", "ridge(S)", "ridge(S + X)"</p></dd>
+<dd><p>Character vector giving the basis strategy used within each
+group. If a single value is supplied, it is reused for every group.
+Supported values in the current implementation include `"Poly(S)"`,
+`"Poly(S) + X"`, `"Interaction"`, `"Beta"`, and `"kernel"`.</p></dd>
 
 
 <dt>nknots</dt>
 <dd><p>Number of knots (only used when basis = "Spline(S)" or
 "Spline(S) + X"). Default is 3. Ignored otherwise.</p></dd>
 
+
+<dt>cross_fit_variance</dt>
+<dd><p>Logical; if `TRUE`, use cross-fitted labeled
+imputations when estimating the variance through the shared imputation-quality
+path.</p></dd>
+
+
+<dt>return_imputation_quality</dt>
+<dd><p>Logical; if `TRUE`, attach imputation
+quality metrics and the labeled/unlabeled imputations to the result.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
     
 
-<p>List of estimated fairness metrics and their variances.</p>
+<p>List of estimated fairness metrics and their variances.
+The returned list always contains `est`, `var`, and `alpha`. When
+`return_imputation_quality = TRUE`, it also contains `imp_quality`,
+`m_labeled`, and `m_unlabeled`.</p>
     </div>
 
   </div>

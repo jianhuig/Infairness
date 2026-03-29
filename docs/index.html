@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>What the Package Does (Title Case) • SSFairnessAudit</title>
+<title>Semi-Supervised Fairness Auditing for Predictive Models • SSFairnessAudit</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="bootstrap-toc.css">
 <script src="bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
-<script src="pkgdown.js"></script><meta property="og:title" content="What the Package Does (Title Case)">
-<meta property="og:description" content="More about what it does (maybe more than one line) Use four spaces when indenting paragraphs within the Description.">
+<script src="pkgdown.js"></script><meta property="og:title" content="Semi-Supervised Fairness Auditing for Predictive Models">
+<meta property="og:description" content="Provides tools for auditing group fairness metrics in supervised and semi-supervised settings. The package includes fairness estimators, model selection and basis construction utilities, influence curve variance estimation, and synthetic data generation for simulation studies.">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
@@ -56,8 +56,63 @@
       </header><div class="row">
   <div class="contents col-md-9">
 <div class="section level1">
-<div class="page-header"><h1 id="infariness-package">Infariness-package<a class="anchor" aria-label="anchor" href="#infariness-package"></a>
+<div class="page-header"><h1 id="ssfairnessaudit">SSFairnessAudit<a class="anchor" aria-label="anchor" href="#ssfairnessaudit"></a>
 </h1></div>
+<p><code>SSFairnessAudit</code> is an R package for auditing group fairness metrics when labels are fully observed or only partially available. The repository contains the package source, generated documentation, and a small set of research scripts used for simulation experiments.</p>
+<div class="section level2">
+<h2 id="main-workflow">Main workflow<a class="anchor" aria-label="anchor" href="#main-workflow"></a>
+</h2>
+<p>Use <code><a href="reference/Audit_Fairness.html">Audit_Fairness()</a></code> as the high-level entry point or call <code><a href="reference/SSFairness.html">SSFairness()</a></code> directly when you want more control over the semi-supervised estimator.</p>
+<p><code><a href="reference/SSFairness.html">SSFairness()</a></code> now supports two useful switches:</p>
+<ul>
+<li>
+<code>cross_fit_variance = TRUE</code> to use the cross-fitted imputation path for variance estimation</li>
+<li>
+<code>return_imputation_quality = TRUE</code> to return imputation diagnostics plus the labeled and unlabeled imputations</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="repository-layout">Repository layout<a class="anchor" aria-label="anchor" href="#repository-layout"></a>
+</h2>
+<ul>
+<li>
+<code>R/</code>: package source code</li>
+<li>
+<code>man/</code>: generated <code>.Rd</code> documentation</li>
+<li>
+<code>docs/</code>: pkgdown site output</li>
+<li>
+<code>scripts/</code>: simulation and exploratory analysis scripts</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="main-user-facing-functions">Main user-facing functions<a class="anchor" aria-label="anchor" href="#main-user-facing-functions"></a>
+</h2>
+<ul>
+<li>
+<code><a href="reference/Audit_Fairness.html">Audit_Fairness()</a></code>: wrapper for supervised and semi-supervised auditing</li>
+<li>
+<code><a href="reference/SupervisedFairness.html">SupervisedFairness()</a></code>: fairness estimation with labeled outcomes</li>
+<li>
+<code><a href="reference/SSFairness.html">SSFairness()</a></code>: semi-supervised fairness estimation and optional imputation diagnostics</li>
+<li>
+<code><a href="reference/DataGeneration.html">DataGeneration()</a></code>: synthetic data generator for simulations</li>
+<li>
+<code><a href="reference/ImputeQuality.html">ImputeQuality()</a></code>: compatibility wrapper for imputation-quality assessment</li>
+<li>
+<code><a href="reference/Select_Model.html">Select_Model()</a></code>: candidate-model selection helper</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="notes">Notes<a class="anchor" aria-label="anchor" href="#notes"></a>
+</h2>
+<ul>
+<li>
+<code>docs/</code> is committed so the package website can be served from GitHub Pages.</li>
+<li>
+<code>scripts/</code> is intentionally excluded from package builds because it supports experiments rather than the package API.</li>
+</ul>
+</div>
 </div>
   </div>
 
@@ -65,7 +120,9 @@
     <div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
-<li>What license is it under?</li>
+<li>
+<a href="https://opensource.org/licenses/mit-license.php" class="external-link">MIT</a> + file <a href="LICENSE-text.html">LICENSE</a>
+</li>
 </ul>
 </div>
 

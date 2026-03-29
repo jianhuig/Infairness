@@ -7,9 +7,8 @@
 RidgeRegression(
   X,
   y,
-  coef = NULL,
   weights = NULL,
-  exponents = seq(1 + 0.05, 2.5, length.out = 100)
+  exponents = seq(1.05, 2.5, length.out = 100)
 )
 }
 \arguments{
@@ -17,11 +16,11 @@ RidgeRegression(
 
 \item{y}{Numeric outcome vector.}
 
-\item{coef}{Coefficient for scaling lambda values.}
-
 \item{weights}{Numeric vector of weights.}
 
 \item{exponents}{Sequence of exponents for generating lambda values.}
+
+\item{coef}{Coefficient for scaling lambda values.}
 
 \item{family}{Exponential family of interest.}
 }
