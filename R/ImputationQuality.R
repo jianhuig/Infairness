@@ -409,30 +409,3 @@ compute_imputation_quality <- function(Y,
   return(list(est = est, var = var, alpha = alphas, imp_quality = metrics_by_group,
     m_labeled = m_labeled, m_unlabeled = m_unlabeled))
 }
-
-#' Imputation Quality
-#'
-#' Convenience wrapper around the shared semi-supervised imputation routine.
-#' For new code, prefer `SSFairness(..., return_imputation_quality = TRUE)`.
-#' @export
-ImputeQuality <- function(Y,
-                          S,
-                          A,
-                          threshold = 0.5,
-                          X = NULL,
-                          basis = c("Poly(S)", "Poly(S)"),
-                          k = 10,
-                          alphas = NULL,
-                          ...) {
-  compute_imputation_quality(
-    Y = Y,
-    S = S,
-    A = A,
-    threshold = threshold,
-    X = X,
-    basis = basis,
-    k = k,
-    alphas = alphas,
-    ...
-  )
-}

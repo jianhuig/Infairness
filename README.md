@@ -25,7 +25,6 @@ directly when you want more control over the semi-supervised estimator.
 - `SupervisedFairness()`: fairness estimation with labeled outcomes
 - `SSFairness()`: semi-supervised fairness estimation and optional imputation diagnostics
 - `DataGeneration()`: synthetic data generator for simulations
-- `ImputeQuality()`: compatibility wrapper for imputation-quality assessment
 - `Select_Model()`: candidate-model selection helper
 
 ## Notes
