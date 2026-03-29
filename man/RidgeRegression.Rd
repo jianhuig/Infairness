@@ -4,16 +4,24 @@
 \alias{RidgeRegression}
 \title{Ridge regression.}
 \usage{
-RidgeRegression(X, y, weights = NULL, lambda = 1e-04, family = "binomial")
+RidgeRegression(
+  X,
+  y,
+  coef = NULL,
+  weights = NULL,
+  exponents = seq(1 + 0.05, 2.5, length.out = 100)
+)
 }
 \arguments{
 \item{X}{Covariate matrix.}
 
 \item{y}{Numeric outcome vector.}
 
+\item{coef}{Coefficient for scaling lambda values.}
+
 \item{weights}{Numeric vector of weights.}
 
-\item{lambda}{Penalization parameter.}
+\item{exponents}{Sequence of exponents for generating lambda values.}
 
 \item{family}{Exponential family of interest.}
 }

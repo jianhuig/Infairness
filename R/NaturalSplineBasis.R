@@ -28,7 +28,8 @@ NaturalSplineBasis <- function(X, num_knots) {
     }
 
     # Compute the natural spline basis.
-    d_k <- (TruncatedCubic(X_i, knots[num_knots - 1])) / (knots[num_knots] - knots[num_knots - 1])
+    d_k <- (TruncatedCubic(X_i, knots[num_knots - 1])) /
+      (knots[num_knots] - knots[num_knots - 1])
     evals <- sapply(1:(num_knots - 2), function(ii) {
       d_i <- (TruncatedCubic(X_i, knots[ii])) / (knots[num_knots] - knots[ii])
       basis.new <- d_i - d_k

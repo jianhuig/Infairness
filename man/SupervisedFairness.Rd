@@ -2,22 +2,24 @@
 % Please edit documentation in R/SupervisedFairness.R
 \name{SupervisedFairness}
 \alias{SupervisedFairness}
-\title{Supervised fairness estimation.}
+\title{# Purpose: Estimation of fairness metrics in supervised setting.
+# Updated: 2023-07-17}
 \usage{
-SupervisedFairness(Y, S, A, threshold = 0.5, W = NULL)
+SupervisedFairness(Y, S, A, threshold = 0.5, W = NULL, V = 10)
 }
 \arguments{
 \item{Y}{Outcome in the observed dataset.}
 
 \item{S}{Model score in observed dataset.}
 
-\item{A}{Group indicator in observed  dataset.}
+\item{A}{Group indicator in observed dataset.}
 
-\item{threshold}{Threshold for classification based on the model score.
-Default value is 0.5.}
+\item{threshold}{Threshold for classification. Default is 0.5.}
 
 \item{W}{Weight. Default is Null.}
+
+\item{V}{Number of folds for cross-fitting. Default is 5.}
 }
 \description{
-Supervised fairness estimation.
+Supervised fairness estimation with Cross-Fitting
 }

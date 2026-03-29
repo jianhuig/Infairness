@@ -4,16 +4,7 @@
 \alias{DataGeneration}
 \title{Data generation.}
 \usage{
-DataGeneration(
-  n_labeled,
-  N_unlabeled,
-  prot_att_prevalence,
-  model = "correct",
-  b0 = NULL,
-  b1 = NULL,
-  p = 10,
-  rho = 0.4
-)
+DataGeneration(n_labeled, N_unlabeled, prot_att_prevalence, model, rho = 0.4)
 }
 \arguments{
 \item{n_labeled}{Number of labeled examples.}
@@ -26,14 +17,9 @@ should be equal to the number of class. If the number of class is two,
 the length of this vector can either be one or two.}
 
 \item{model}{Indicator to generate from which model.
-Default is logistic model.
-possible options: "correct", "incorrect outcome", "incorrect outcome and imputation 1", and "incorrect outcome and imputation 2".}
+possible options: "scenario 1", "scenario 2"}
 
-\item{b0}{Vector of parameters to generate Y.}
-
-\item{p}{Number of covariates. Default is 10.}
-
-\item{rho}{Correlation between covariates. Default is 0.2.}
+\item{rho}{Correlation between covariates. Default is 0.4.}
 }
 \value{
 Data.frame.
