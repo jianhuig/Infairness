@@ -46,7 +46,7 @@ clusterExport(cl = cl, varlist = list(
   "indep", "nclass", "n", "N",
   "p", "rho", "threshold", "model", "prev", "model_0", "model_1"
 ))
-clusterEvalQ(cl, source("TwoStep.R"))
+clusterEvalQ(cl, source(file.path("scripts", "TwoStep.R")))
 
 nsim <- 1e4
 result <- pbapply::pblapply(cl = cl, X = 1:nsim, FUN = function(j) {
