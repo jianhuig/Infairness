@@ -35,11 +35,15 @@ Default is NULL.}
 \item{basis}{Character vector giving the basis strategy used within each
 group. If a single value is supplied, it is reused for every group.
 Supported values in the current implementation include `"Poly(S)"`,
-`"Poly(S) + X"`, `"Spline(S)"`, `"Spline(S) + X"`, `"Interaction"`,
-`"Beta"`, and `"kernel"`.}
+`"Poly(S) + X"`, `"Spline(S)"`, `"Spline(S) + X"`, `"Spline Interaction"`,
+`"Interaction"`, `"Beta"`, and `"kernel"`.
+`"Spline(S) + X"` uses a shared spline in `S` plus additive covariate
+effects, while `"Spline Interaction"` augments that model with spline-by-`X`
+interaction terms so the shape in `S` can vary with `X`.}
 
-\item{nknots}{Number of knots (only used when basis = "Spline(S)" or
-"Spline(S) + X"). Default is 3. Ignored otherwise.}
+\item{nknots}{Number of knots used by spline-based branches
+(`"Spline(S)"`, `"Spline(S) + X"`, and `"Spline Interaction"`). Default is
+3. Ignored otherwise.}
 
 \item{cross_fit_variance}{Logical; if `TRUE`, use cross-fitted labeled
 imputations when estimating the variance through the shared imputation-quality

@@ -347,6 +347,124 @@ compute_imputation_quality <- function(Y,
           ) %*% gamma
         )
       }
+    } else if (basis_a == "Spline Interaction") {
+      alphas <- c(alphas, nknots)
+
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots, return_knots = TRUE)
+      spline_knots <- attr(basis_labeled, "knots")
+      basis_unlabeled <- NaturalSplineBasis(
+        S_unlabeled %>% as.matrix(),
+        nknots,
+        knots = spline_knots
+      )
+
+      X_labeled_spline_int <- do.call(
+        cbind,
+        lapply(seq_len(ncol(X_labeled)), function(j) {
+          basis_labeled * X_labeled[, j]
+        })
+      )
+      X_unlabeled_spline_int <- do.call(
+        cbind,
+        lapply(seq_len(ncol(X_unlabeled)), function(j) {
+          basis_unlabeled * X_unlabeled[, j]
+        })
+      )
+
+      gamma <- tryCatch(
+        {
+          SplineRidgeRegression(
+            X = cbind(
+              basis_labeled[A_labeled == a, ],
+              C_labeled[A_labeled == a],
+              X_labeled[A_labeled == a, , drop = FALSE],
+              X_labeled_spline_int[A_labeled == a, ]
+            ) %>% as.matrix(),
+            y = Y_labeled[A_labeled == a]
+          )
+        },
+        error = function(e) {
+          print("Spline ridge regression produced an error")
+          print(e)
+        }
+      )
+
+      m_unlabeled[A_unlabeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_unlabeled[A_unlabeled == a, ],
+            C_unlabeled[A_unlabeled == a],
+            X_unlabeled[A_unlabeled == a, , drop = FALSE],
+            X_unlabeled_spline_int[A_unlabeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
+
+      Y_a <- Y_labeled[A_labeled == a]
+      S_a <- S_labeled[A_labeled == a]
+      X_a <- X_labeled[A_labeled == a, , drop = FALSE]
+      C_a <- C_labeled[A_labeled == a]
+      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+
+      for (i in 1:k) {
+        train_id <- which(fold != i)
+        test_id <- which(fold == i)
+        basis_train <- NaturalSplineBasis(
+          S_a[train_id] %>% as.matrix(),
+          nknots,
+          return_knots = TRUE
+        )
+        fold_knots <- attr(basis_train, "knots")
+        basis_test <- NaturalSplineBasis(
+          S_a[test_id] %>% as.matrix(),
+          nknots,
+          knots = fold_knots
+        )
+
+        X_train_int <- do.call(
+          cbind,
+          lapply(seq_len(ncol(X_a)), function(j) {
+            basis_train * X_a[train_id, j]
+          })
+        )
+        X_test_int <- do.call(
+          cbind,
+          lapply(seq_len(ncol(X_a)), function(j) {
+            basis_test * X_a[test_id, j]
+          })
+        )
+
+        gamma <- tryCatch(
+          {
+            SplineRidgeRegression(
+              X = cbind(
+                basis_train,
+                C_a[train_id],
+                X_a[train_id, , drop = FALSE],
+                X_train_int
+              ) %>% as.matrix(),
+              y = Y_a[train_id]
+            )
+          },
+          error = function(e) {
+            print("Spline ridge regression produced an error")
+            print(e)
+          }
+        )$coefficients
+
+        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+          as.matrix(
+            cbind(
+              1,
+              basis_test,
+              C_a[test_id],
+              X_a[test_id, , drop = FALSE],
+              X_test_int
+            )
+          ) %*% gamma
+        )
+      }
     } else if (basis_a == "Interaction") {
       X_int <- S * as.matrix(X)
       X_int <- cbind(X, X_int)

@@ -13,7 +13,7 @@
 #'
 NaturalSplineBasis <- function(X, num_knots, knots = NULL, return_knots = FALSE) {
   X <- as.matrix(X)
-  basis.X <- c()
+  basis_parts <- vector("list", ncol(X))
   knots_used <- vector("list", ncol(X))
 
   for (i in 1:ncol(X)) {
@@ -39,13 +39,14 @@ NaturalSplineBasis <- function(X, num_knots, knots = NULL, return_knots = FALSE)
       d_i <- (TruncatedCubic(X_i, current_knots[ii])) / (current_knots[num_knots] - current_knots[ii])
       basis.new <- d_i - d_k
     })
+    evals <- matrix(evals, nrow = length(X_i))
 
     # Bind original variable and basis.
-    basis.X <- cbind(basis.X, cbind(X_i, evals))
+    basis_parts[[i]] <- cbind(X_i, evals)
   }
 
   # Return basis including everything.
-  basis <- basis.X
+  basis <- do.call(cbind, basis_parts)
   if (return_knots) {
     attr(basis, "knots") <- knots_used
   }

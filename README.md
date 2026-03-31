@@ -14,7 +14,10 @@ directly when you want more control over the semi-supervised estimator.
 
 The semi-supervised basis options now include polynomial, natural spline,
 interaction, beta-calibration, and kernel branches. The natural spline path is
-available through `basis = "Spline(S)"` and `basis = "Spline(S) + X"`.
+available through `basis = "Spline(S)"`, `basis = "Spline(S) + X"`, and
+`basis = "Spline Interaction"`. The additive spline branch uses a shared
+smooth in `S` plus additive covariate effects; the spline interaction branch
+adds spline-by-covariate interactions so the shape in `S` can vary with `X`.
 
 ## Repository layout
 
