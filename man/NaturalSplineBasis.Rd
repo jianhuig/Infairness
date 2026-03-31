@@ -4,12 +4,17 @@
 \alias{NaturalSplineBasis}
 \title{Computes the natural spline basis.}
 \usage{
-NaturalSplineBasis(X, num_knots)
+NaturalSplineBasis(X, num_knots, knots = NULL, return_knots = FALSE)
 }
 \arguments{
 \item{X}{Covariate matrix.}
 
 \item{num_knots}{Number of knots.}
+
+\item{knots}{Optional list of knot vectors, one per column of `X`.}
+
+\item{return_knots}{Logical; if `TRUE`, attach the knot locations used to the
+returned matrix as an attribute.}
 }
 \value{
 Matrix containing natural spline basis.
