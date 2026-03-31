@@ -4,34 +4,39 @@
 #'
 #' @param X Covariate matrix.
 #' @param num_knots Number of knots.
+#' @param knots Optional list of knot vectors, one per column of `X`.
+#' @param return_knots Logical; if `TRUE`, attach the knot locations used to the
+#' returned matrix as an attribute.
 #' @export
 #' @return Matrix containing natural spline basis.
 #' @importFrom stats coef glm quantile rbeta rbinom rlogis rnorm
 #'
-NaturalSplineBasis <- function(X, num_knots) {
+NaturalSplineBasis <- function(X, num_knots, knots = NULL, return_knots = FALSE) {
   X <- as.matrix(X)
   basis.X <- c()
+  knots_used <- vector("list", ncol(X))
 
   for (i in 1:ncol(X)) {
     X_i <- X[, i]
 
-    # Quantiles to determine appropriate knots.
-    knots <- quantile(X_i, seq(0, 1, length = num_knots))
+    if (is.null(knots)) {
+      current_knots <- quantile(X_i, seq(0, 1, length = num_knots))
+      j <- 0
 
-    # Changes quantiles if there aren't enough unique values.
-    j <- 0
-
-    while (length(unique(knots)) != num_knots) {
-      j <- j + 1
-
-      knots <- unique(quantile(X_i, seq(0, 1, length = num_knots + j)))
+      while (length(unique(current_knots)) != num_knots) {
+        j <- j + 1
+        current_knots <- unique(quantile(X_i, seq(0, 1, length = num_knots + j)))
+      }
+    } else {
+      current_knots <- knots[[i]]
     }
+    knots_used[[i]] <- current_knots
 
     # Compute the natural spline basis.
-    d_k <- (TruncatedCubic(X_i, knots[num_knots - 1])) /
-      (knots[num_knots] - knots[num_knots - 1])
+    d_k <- (TruncatedCubic(X_i, current_knots[num_knots - 1])) /
+      (current_knots[num_knots] - current_knots[num_knots - 1])
     evals <- sapply(1:(num_knots - 2), function(ii) {
-      d_i <- (TruncatedCubic(X_i, knots[ii])) / (knots[num_knots] - knots[ii])
+      d_i <- (TruncatedCubic(X_i, current_knots[ii])) / (current_knots[num_knots] - current_knots[ii])
       basis.new <- d_i - d_k
     })
 
@@ -41,6 +46,9 @@ NaturalSplineBasis <- function(X, num_knots) {
 
   # Return basis including everything.
   basis <- basis.X
+  if (return_knots) {
+    attr(basis, "knots") <- knots_used
+  }
 
   return(basis)
 }

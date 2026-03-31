@@ -50,6 +50,7 @@ SSFairness <- function(
       threshold = threshold,
       X = X,
       basis = basis,
+      nknots = nknots,
       k = k,
       ...
     )
@@ -236,8 +237,13 @@ SSFairness <- function(
     } else if (basis_a == "Spline(S)") {
       alphas <- c(alphas, nknots)
 
-      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
-      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots, return_knots = TRUE)
+      spline_knots <- attr(basis_labeled, "knots")
+      basis_unlabeled <- NaturalSplineBasis(
+        S_unlabeled %>% as.matrix(),
+        nknots,
+        knots = spline_knots
+      )
 
       gamma <- tryCatch(
         {
@@ -280,8 +286,13 @@ SSFairness <- function(
     } else if (basis_a == "Spline(S) + X") {
       alphas <- c(alphas, nknots)
 
-      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
-      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots, return_knots = TRUE)
+      spline_knots <- attr(basis_labeled, "knots")
+      basis_unlabeled <- NaturalSplineBasis(
+        S_unlabeled %>% as.matrix(),
+        nknots,
+        knots = spline_knots
+      )
 
       gamma <- tryCatch(
         {

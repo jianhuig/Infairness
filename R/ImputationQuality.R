@@ -6,6 +6,7 @@ compute_imputation_quality <- function(Y,
                                        threshold = 0.5,
                                        X = NULL,
                                        basis = c("Poly(S)", "Poly(S)"),
+                                       nknots = 3,
                                        k = 10,
                                        alphas = NULL,
                                        ...) {
@@ -200,8 +201,13 @@ compute_imputation_quality <- function(Y,
     } else if (basis_a == "Spline(S)") {
       alphas <- c(alphas, nknots)
 
-      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
-      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots, return_knots = TRUE)
+      spline_knots <- attr(basis_labeled, "knots")
+      basis_unlabeled <- NaturalSplineBasis(
+        S_unlabeled %>% as.matrix(),
+        nknots,
+        knots = spline_knots
+      )
 
       gamma <- tryCatch(
         {
@@ -237,8 +243,13 @@ compute_imputation_quality <- function(Y,
       for (i in 1:k) {
         train_id <- which(fold != i)
         test_id <- which(fold == i)
-        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots)
-        basis_test <- NaturalSplineBasis(S_a[test_id] %>% as.matrix(), nknots)
+        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots, return_knots = TRUE)
+        fold_knots <- attr(basis_train, "knots")
+        basis_test <- NaturalSplineBasis(
+          S_a[test_id] %>% as.matrix(),
+          nknots,
+          knots = fold_knots
+        )
 
         gamma <- tryCatch(
           {
@@ -260,8 +271,13 @@ compute_imputation_quality <- function(Y,
     } else if (basis_a == "Spline(S) + X") {
       alphas <- c(alphas, nknots)
 
-      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
-      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots, return_knots = TRUE)
+      spline_knots <- attr(basis_labeled, "knots")
+      basis_unlabeled <- NaturalSplineBasis(
+        S_unlabeled %>% as.matrix(),
+        nknots,
+        knots = spline_knots
+      )
 
       gamma <- tryCatch(
         {
@@ -300,8 +316,13 @@ compute_imputation_quality <- function(Y,
       for (i in 1:k) {
         train_id <- which(fold != i)
         test_id <- which(fold == i)
-        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots)
-        basis_test <- NaturalSplineBasis(S_a[test_id] %>% as.matrix(), nknots)
+        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots, return_knots = TRUE)
+        fold_knots <- attr(basis_train, "knots")
+        basis_test <- NaturalSplineBasis(
+          S_a[test_id] %>% as.matrix(),
+          nknots,
+          knots = fold_knots
+        )
 
         gamma <- tryCatch(
           {
