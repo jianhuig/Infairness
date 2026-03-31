@@ -49,3 +49,14 @@ NaturalSplineBasis <- function(X, num_knots) {
 TruncatedCubic <- function(x, knot_location) {
   return(((x > knot_location) * (x - knot_location))^3)
 }
+
+# Use a slightly more conservative ridge path for spline-expanded designs,
+# which typically have wider bases than the polynomial branches.
+SplineRidgeRegression <- function(X, y, weights = NULL) {
+  RidgeRegression(
+    X = X,
+    y = y,
+    weights = weights,
+    exponents = seq(0.8, 2.8, length.out = 120)
+  )
+}

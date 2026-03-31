@@ -197,6 +197,135 @@ compute_imputation_quality <- function(Y,
           ) %*% gamma
         )
       }
+    } else if (basis_a == "Spline(S)") {
+      alphas <- c(alphas, nknots)
+
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
+      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+
+      gamma <- tryCatch(
+        {
+          SplineRidgeRegression(
+            X = cbind(
+              basis_labeled[A_labeled == a, ],
+              C_labeled[A_labeled == a]
+            ) %>% as.matrix(),
+            y = Y_labeled[A_labeled == a]
+          )
+        },
+        error = function(e) {
+          print("Spline ridge regression produced an error")
+          print(e)
+        }
+      )
+
+      m_unlabeled[A_unlabeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_unlabeled[A_unlabeled == a, ],
+            C_unlabeled[A_unlabeled == a]
+          )
+        ) %*% gamma$coefficients
+      )
+
+      Y_a <- Y_labeled[A_labeled == a]
+      S_a <- S_labeled[A_labeled == a]
+      C_a <- C_labeled[A_labeled == a]
+      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+
+      for (i in 1:k) {
+        train_id <- which(fold != i)
+        test_id <- which(fold == i)
+        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots)
+        basis_test <- NaturalSplineBasis(S_a[test_id] %>% as.matrix(), nknots)
+
+        gamma <- tryCatch(
+          {
+            SplineRidgeRegression(
+              X = cbind(basis_train, C_a[train_id]) %>% as.matrix(),
+              y = Y_a[train_id]
+            )
+          },
+          error = function(e) {
+            print("Spline ridge regression produced an error")
+            print(e)
+          }
+        )$coefficients
+
+        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+          as.matrix(cbind(1, basis_test, C_a[test_id])) %*% gamma
+        )
+      }
+    } else if (basis_a == "Spline(S) + X") {
+      alphas <- c(alphas, nknots)
+
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
+      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+
+      gamma <- tryCatch(
+        {
+          SplineRidgeRegression(
+            X = cbind(
+              basis_labeled[A_labeled == a, ],
+              C_labeled[A_labeled == a],
+              X_labeled[A_labeled == a, ]
+            ) %>% as.matrix(),
+            y = Y_labeled[A_labeled == a]
+          )
+        },
+        error = function(e) {
+          print("Spline ridge regression produced an error")
+          print(e)
+        }
+      )
+
+      m_unlabeled[A_unlabeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_unlabeled[A_unlabeled == a, ],
+            C_unlabeled[A_unlabeled == a],
+            X_unlabeled[A_unlabeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
+
+      Y_a <- Y_labeled[A_labeled == a]
+      S_a <- S_labeled[A_labeled == a]
+      X_a <- X_labeled[A_labeled == a, , drop = FALSE]
+      C_a <- C_labeled[A_labeled == a]
+      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+
+      for (i in 1:k) {
+        train_id <- which(fold != i)
+        test_id <- which(fold == i)
+        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots)
+        basis_test <- NaturalSplineBasis(S_a[test_id] %>% as.matrix(), nknots)
+
+        gamma <- tryCatch(
+          {
+            SplineRidgeRegression(
+              X = cbind(
+                basis_train,
+                C_a[train_id],
+                X_a[train_id, ]
+              ) %>% as.matrix(),
+              y = Y_a[train_id]
+            )
+          },
+          error = function(e) {
+            print("Spline ridge regression produced an error")
+            print(e)
+          }
+        )$coefficients
+
+        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+          as.matrix(
+            cbind(1, basis_test, C_a[test_id], X_a[test_id, ])
+          ) %*% gamma
+        )
+      }
     } else if (basis_a == "Interaction") {
       X_int <- S * as.matrix(X)
       X_int <- cbind(X, X_int)

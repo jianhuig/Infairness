@@ -35,7 +35,8 @@ Default is NULL.}
 \item{basis}{Character vector giving the basis strategy used within each
 group. If a single value is supplied, it is reused for every group.
 Supported values in the current implementation include `"Poly(S)"`,
-`"Poly(S) + X"`, `"Interaction"`, `"Beta"`, and `"kernel"`.}
+`"Poly(S) + X"`, `"Spline(S)"`, `"Spline(S) + X"`, `"Interaction"`,
+`"Beta"`, and `"kernel"`.}
 
 \item{nknots}{Number of knots (only used when basis = "Spline(S)" or
 "Spline(S) + X"). Default is 3. Ignored otherwise.}

@@ -12,7 +12,8 @@
 #' @param basis Character vector giving the basis strategy used within each
 #' group. If a single value is supplied, it is reused for every group.
 #' Supported values in the current implementation include `"Poly(S)"`,
-#' `"Poly(S) + X"`, `"Interaction"`, `"Beta"`, and `"kernel"`.
+#' `"Poly(S) + X"`, `"Spline(S)"`, `"Spline(S) + X"`, `"Interaction"`,
+#' `"Beta"`, and `"kernel"`.
 #' @param nknots Number of knots (only used when basis = "Spline(S)" or
 #' "Spline(S) + X"). Default is 3. Ignored otherwise.
 #' @param cross_fit_variance Logical; if `TRUE`, use cross-fitted labeled
@@ -230,6 +231,97 @@ SSFairness <- function(
           )
         ) %*%
           gamma$coefficients
+      )
+      m_labeled[A_labeled == a] <- imputed_labeled
+    } else if (basis_a == "Spline(S)") {
+      alphas <- c(alphas, nknots)
+
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
+      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+
+      gamma <- tryCatch(
+        {
+          SplineRidgeRegression(
+            X = cbind(
+              basis_labeled[A_labeled == a, ],
+              C_labeled[A_labeled == a]
+            ) %>% as.matrix(),
+            y = Y_labeled[A_labeled == a]
+          )
+        },
+        error = function(e) {
+          print("Spline ridge regression produced an error")
+          print(e)
+        }
+      )
+
+      imputed_unlabeled <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_unlabeled[A_unlabeled == a, ],
+            C_unlabeled[A_unlabeled == a]
+          )
+        ) %*% gamma$coefficients
+      )
+
+      m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
+
+      imputed_labeled <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a]
+          )
+        ) %*% gamma$coefficients
+      )
+      m_labeled[A_labeled == a] <- imputed_labeled
+    } else if (basis_a == "Spline(S) + X") {
+      alphas <- c(alphas, nknots)
+
+      basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots)
+      basis_unlabeled <- NaturalSplineBasis(S_unlabeled %>% as.matrix(), nknots)
+
+      gamma <- tryCatch(
+        {
+          SplineRidgeRegression(
+            X = cbind(
+              basis_labeled[A_labeled == a, ],
+              C_labeled[A_labeled == a],
+              X_labeled[A_labeled == a, ]
+            ) %>% as.matrix(),
+            y = Y_labeled[A_labeled == a]
+          )
+        },
+        error = function(e) {
+          print("Spline ridge regression produced an error")
+          print(e)
+        }
+      )
+
+      imputed_unlabeled <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_unlabeled[A_unlabeled == a, ],
+            C_unlabeled[A_unlabeled == a],
+            X_unlabeled[A_unlabeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
+
+      m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
+
+      imputed_labeled <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a],
+            X_labeled[A_labeled == a, ]
+          )
+        ) %*% gamma$coefficients
       )
       m_labeled[A_labeled == a] <- imputed_labeled
     } else if (basis_a == "Interaction") {

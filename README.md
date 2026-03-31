@@ -12,6 +12,10 @@ directly when you want more control over the semi-supervised estimator.
 - `cross_fit_variance = TRUE` to use the cross-fitted imputation path for variance estimation
 - `return_imputation_quality = TRUE` to return imputation diagnostics plus the labeled and unlabeled imputations
 
+The semi-supervised basis options now include polynomial, natural spline,
+interaction, beta-calibration, and kernel branches. The natural spline path is
+available through `basis = "Spline(S)"` and `basis = "Spline(S) + X"`.
+
 ## Repository layout
 
 - `R/`: package source code
