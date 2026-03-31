@@ -1,0 +1,369 @@
+---
+title: "Toy Example"
+author: "Jianhui Gao"
+date: "2026-03-31"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+library(ggplot2)
+library(pROC)
+library(patchwork)
+
+script_dir <- normalizePath(getwd())
+data_dir <- file.path(script_dir, "Data")
+```
+
+# Simulation Setup
+
+We consider four data-generating mechanisms. In all cases, we generate
+\[
+A_i \sim \mathrm{Bernoulli}(0.5), \qquad 
+\mathbf{X}_i \sim \mathcal{N}(\mathbf{0}, I_5), \qquad 
+\mathbf{W}_i \sim \mathcal{N}(\mathbf{0}, I_5)
+\]
+
+Let $\boldsymbol{\beta}_X, \boldsymbol{\beta}_W \in \mathbb{R}^5$ be unit-norm vectors, and define
+\[
+\eta_i = \frac{\mathbf{X}_i^\top \boldsymbol{\beta}_X + \mathbf{W}_i^\top \boldsymbol{\beta}_W}{\sqrt{2}},
+\quad
+\alpha_0 = -0.5, \ \alpha_1 = 0.5.
+\]
+
+\paragraph{(i) Ideal case.}
+We define
+\[
+S_i = \mathrm{expit}(\alpha_{A_i} + \eta_i), 
+\qquad 
+Y_i \mid S_i \sim \mathrm{Bernoulli}(S_i).
+\]
+In this case,
+\[
+S_i = \mathbb{E}[Y_i \mid \mathbf{X}_i, \mathbf{W}_i, A_i],
+\quad 
+\mathbb{E}[Y_i \mid S_i, A_i, \mathbf{W}_i] = S_i,
+\]
+so $S_i$ is a perfectly calibrated risk score.
+
+\paragraph{(ii) S misspecified but E[Y|S,A] lies within the beta-calibration family and $\mathbb{E}[Y \mid S,A] = \mathbb{E}[Y \mid S,A,W]$.}
+We define
+\[
+S_i = \eta_i, 
+\qquad 
+Y_i \mid S_i, A_i \sim \mathrm{Bernoulli}\big(\mathrm{expit}(\alpha_{A_i} + S_i)\big).
+\]
+Here,
+\[
+\mathbb{E}[Y_i \mid S_i, A_i, \mathbf{W}_i] = \mathbb{E}[Y_i \mid S_i, A_i],
+\]
+so $S_i$ is sufficient for predicting $Y_i$, but is not calibrated.
+
+\paragraph{(iii) S misspecified and E[Y|S,A] doesnt lie within the beta-calibration family and $\mathbb{E}[Y \mid S,A] = \mathbb{E}[Y \mid S,A,W]$.}
+We define
+\[
+S_i = \eta_i, 
+\qquad
+Y_i \mid S_i, A_i \sim \mathrm{Bernoulli}\big(\mathrm{expit}(\alpha_{A_i} + \gamma(S_i + 0.5 S_i^2))\big),
+\]
+with $\gamma=1$. In this case,
+\[
+\mathbb{E}[Y_i \mid S_i, A_i, \mathbf{W}_i] = \mathbb{E}[Y_i \mid S_i, A_i],
+\]
+but the regression function is nonlinear in $S_i$, so beta calibration are misspecified.
+
+\paragraph{(iv) Additional information in $\mathbf{W}$.}
+We define
+\[
+S_i = \mathbf{X}_i^\top \boldsymbol{\beta}_X, 
+\qquad 
+Y_i \mid S_i, \mathbf{W}_i, A_i \sim 
+\mathrm{Bernoulli}\big(\mathrm{expit}(\alpha_{A_i} + S_i + \mathbf{W}_i^\top \boldsymbol{\beta}_W)\big).
+\]
+Here,
+\[
+\mathbb{E}[Y_i \mid S_i, A_i, \mathbf{W}_i] \neq \mathbb{E}[Y_i \mid S_i, A_i],
+\]
+so $\mathbf{W}_i$ provides additional predictive information beyond $S_i$.
+
+# ROC Check
+```{r}
+draw_unit <- function(p) {
+  z <- rnorm(p)
+  z / sqrt(sum(z^2))
+}
+
+gen_data_ideal <- function(n = 2e4, p = 5) {
+  beta_X <- draw_unit(p)
+  beta_W <- draw_unit(p)
+  
+  A <- rbinom(n, 1, 0.5)
+  X <- matrix(rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+  W <- matrix(rnorm(n * p), n, p)
+  colnames(W) <- paste0("W", 1:p)
+  
+  eta <- (X %*% beta_X + W %*% beta_W) / sqrt(2)
+  
+  alpha <- c(-0.5, 0.5)
+  gamma <- 1
+  
+  S <- plogis(alpha[A + 1] + gamma * eta)
+  Y <- rbinom(n, 1, S)
+  
+  data.frame(Y, A, S, X, W)
+}
+
+gen_data_sufficient <- function(n = 2e4, p = 5) {
+  beta_X <- draw_unit(p)
+  beta_W <- draw_unit(p)
+  
+  A <- rbinom(n, 1, 0.5)
+  X <- matrix(rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+  W <- matrix(rnorm(n * p), n, p)
+  colnames(W) <- paste0("W", 1:p)
+  
+  S <- (X %*% beta_X + W %*% beta_W) / sqrt(2)
+  
+  alpha <- c(-0.5, 0.5)
+  gamma <- 1
+  
+  prob <- plogis(alpha[A + 1] + gamma * S)
+  Y <- rbinom(n, 1, prob)
+  
+  data.frame(Y, A, S, X, W)
+}
+
+gen_data_beta_fail <- function(n = 2e4, p = 5) {
+  beta_X <- draw_unit(p)
+  beta_W <- draw_unit(p)
+  
+  A <- rbinom(n, 1, 0.5)
+  X <- matrix(rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+  W <- matrix(rnorm(n * p), n, p)
+  colnames(W) <- paste0("W", 1:p)
+  
+  S <- (X %*% beta_X + W %*% beta_W) / sqrt(2)
+  
+  alpha <- c(-0.5, 0.5)
+  gamma <- 1
+  
+  prob <- plogis(alpha[A + 1] + gamma * (S + 0.5*S^2))
+  Y <- rbinom(n, 1, prob)
+  
+  data.frame(Y, A, S, X, W)
+}
+
+gen_data_w_extra <- function(n = 2e4, p = 5) {
+  beta_X <- draw_unit(p)
+  beta_W <- draw_unit(p)
+  
+  A <- rbinom(n, 1, 0.5)
+  X <- matrix(rnorm(n * p), n, p)
+  colnames(X) <- paste0("X", 1:p)
+  W <- matrix(rnorm(n * p), n, p)
+  colnames(W) <- paste0("W", 1:p)
+  
+  S <- X %*% beta_X
+  
+  alpha <- c(-0.5, 0.5)
+  gamma <- 1
+  delta <- 1
+  
+  prob <- plogis(alpha[A + 1] + gamma * S + delta * (W %*% beta_W))
+  Y <- rbinom(n, 1, prob)
+  
+  data.frame(Y, A, S, X, W)
+}
+set.seed(1)
+
+gen_list <- list(
+  "Scenario 1" = gen_data_ideal,
+  "Scenario 2" = gen_data_sufficient,
+  "Scenario 3" = gen_data_beta_fail,
+  "Scenario 4" = gen_data_w_extra
+)
+
+par(mfrow = c(2, 2))
+
+for (nm in names(gen_list)) {
+  dat <- gen_list[[nm]]()
+  
+  roc_obj <- roc(response = dat$Y, predictor = as.numeric(dat$S), quiet = TRUE)
+  
+  plot(
+    roc_obj,
+    main = paste0(nm, "\nAUC = ", round(auc(roc_obj), 3))
+  )
+}
+```
+
+# Calibration Check
+
+```{r}
+PlotCalib <- function(y, p, A, main = "") {
+  
+  plot(NULL,
+       xlim = c(0,1), ylim = c(0,1),
+       xlab = "Predicted probability",
+       ylab = "Observed probability",
+       main = main)
+  
+  abline(0,1, lty = 2, col = "grey70")
+  
+  # smooth calibration
+  fit0 <- loess(y[A==0] ~ p[A==0], span = 0.75)
+  fit1 <- loess(y[A==1] ~ p[A==1], span = 0.75)
+  
+  grid <- seq(0,1,length.out=200)
+  
+  lines(grid, predict(fit0, newdata = grid), lwd = 2)
+  lines(grid, predict(fit1, newdata = grid), lwd = 2, lty = 2)
+  
+  legend("topleft",
+         legend = c("A=0","A=1"),
+         lwd = 2, lty = c(1,2),
+         bty = "n")
+}
+
+gen_list <- list(
+  "Scenario 1" = gen_data_ideal,
+  "Scenario 2" = gen_data_sufficient,
+  "Scenario 3" = gen_data_beta_fail,
+  "Scenario 4" = gen_data_w_extra
+)
+
+par(mfrow = c(2,2), mar = c(4,4,2,1))
+
+for (nm in names(gen_list)) {
+  
+  dat <- gen_list[[nm]]()
+  
+  # choose scale
+  p_use <- if (nm == "Scenario 1") dat$S else plogis(dat$S)
+  
+  PlotCalib(dat$Y, p_use, dat$A, main = nm)
+}
+
+```
+
+
+# Point Estimate
+
+```{r, warning=FALSE, message=FALSE}
+plist <- list()
+relist <- list()
+
+for(i in 1:4){
+  results <- readRDS(file.path(data_dir, paste0("toy", i, ".rds")))
+  results_df <- do.call(rbind, results)
+
+# Oracle truth
+oracle_mean <- results_df %>%
+  filter(method == "oracle") %>%
+  summarise(val = mean(estimate)) %>%
+  pull(val)
+
+left_df <- results_df %>%
+  filter(method != "oracle") %>%
+  mutate(
+    method = factor(
+      method,
+      levels = c("supervised", "naive", "beta calibration",
+                 "kernel smoothing", "poly(S)", "poly(S+W)",
+                 "spline(S)", "spline(S+W)")
+    )
+  )
+
+p1_boxplot <- left_df %>% 
+  filter(!is.na(estimate)) %>% 
+  ggplot(aes(x = method, y = estimate)) +
+  geom_boxplot(width = 0.5, outlier.size = 1.5) + 
+  geom_hline(
+    yintercept = oracle_mean,
+    linetype = "dashed",
+    linewidth = 0.8,
+    color = "red"
+  ) +
+  labs(
+    title = paste0("Scenario ", i),
+    x = NULL,
+    y = expression(E[Y~"|"~A==1] - E[Y~"|"~A==0])
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(angle = 20, hjust = 1)
+  )
+
+right_df <- results_df %>%
+  filter(!method %in% c("oracle")) %>%
+  na.omit() %>%
+  mutate(
+    method = factor(
+      method,
+      levels = c("supervised", "naive", "beta calibration",
+                 "kernel smoothing", "poly(S)", "poly(S+W)",
+                 "spline(S)", "spline(S+W)")
+    )
+  )
+
+re_df <- right_df %>%
+  filter(estimate < Inf & estimate > -Inf) %>%
+  mutate(sq_error = (estimate - oracle_mean)^2) %>%
+  group_by(method) %>%
+  summarise(mse = mean(sq_error), .groups = "drop")
+
+mse_supervised <- re_df %>%
+  filter(method == "supervised") %>%
+  pull(mse)
+
+re_df <- re_df %>%
+  mutate(RE = mse_supervised / mse)
+
+p2 <- ggplot(re_df %>%
+               filter(!method %in% c("naive", "supervised", "beta calibration"))
+               , aes(x = method, y = RE)) +
+  geom_col(width = 0.65, fill = "grey80", color = "black") +
+  geom_hline(
+    yintercept = 1,
+    linetype = "dashed",
+    linewidth = 0.8,
+    color = "red"
+  ) +
+  labs(
+    title = paste0("Scenario ", i),
+    x = NULL,
+    y = "RE (MSE)"
+  ) +
+  theme_bw(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.minor = element_blank(),
+    axis.text.x = element_text(angle = 20, hjust = 1)
+  )
+
+plist[[i]] <- p1_boxplot
+relist[[i]] <- p2
+
+
+}
+library(patchwork)
+(plist[[1]] + plist[[2]] + plist[[3]] + plist[[4]]) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(face = "bold", size = 16, hjust = 0.5))
+  )
+```
+
+# Relative Efficiency
+
+```{r}
+(relist[[1]] + relist[[2]] + relist[[3]] + relist[[4]]) +
+  plot_annotation(
+    theme = theme(plot.title = element_text(face = "bold", size = 16, hjust = 0.5))
+  )
+```
