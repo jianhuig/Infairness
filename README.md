@@ -34,6 +34,9 @@ adds spline-by-covariate interactions so the shape in `S` can vary with `X`.
 - `SSFairness()`: semi-supervised fairness estimation and optional imputation diagnostics
 - `DataGeneration()`: synthetic data generator for simulations
 - `Select_Model()`: candidate-model selection helper
+  Default selection now uses a TPR-weighted cross-fitted squared-error
+  criterion, with `criterion = "brier"` still available for the plain Brier
+  score.
 
 When comparing candidate semi-supervised models with cross-fitted imputation
 quality, reuse the same `folds` object across all `SSFairness()` calls so the

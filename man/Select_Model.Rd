@@ -4,7 +4,19 @@
 \alias{Select_Model}
 \title{Select best model}
 \usage{
-Select_Model(models, Y, S, A, threshold)
+Select_Model(
+  models,
+  Y,
+  S,
+  A,
+  threshold,
+  criterion = c("weighted_mse", "brier", "log_loss", "auc", "ece")
+)
+}
+\arguments{
+\item{criterion}{Model-selection criterion computed from `imp_quality`.
+Default is `"weighted_mse"`, which uses the TPR-weighted cross-fitted
+squared error.}
 }
 \description{
 When candidate models were fit with cross-fitted imputation quality, they

@@ -4,9 +4,16 @@
 #' should share the same labeled-data folds. Pass the same `folds` argument to
 #' each `SSFairness(..., return_imputation_quality = TRUE)` call before
 #' comparing them here.
+#'
+#' @param criterion Model-selection criterion computed from `imp_quality`.
+#' Default is `"weighted_mse"`, which uses the TPR-weighted cross-fitted
+#' squared error.
 #' @export
 
-Select_Model <- function(models, Y, S, A, threshold) {
+Select_Model <- function(models, Y, S, A, threshold,
+                         criterion = c("weighted_mse", "brier", "log_loss", "auc", "ece")) {
+  criterion <- match.arg(criterion)
+
   model_folds <- lapply(models, function(x) attr(x, "cv_folds"))
   non_null_folds <- Filter(Negate(is.null), model_folds)
 
@@ -42,25 +49,45 @@ Select_Model <- function(models, Y, S, A, threshold) {
   A_unlabeled <- A[-labeled_ind]
   C_unlabeled <- C[-labeled_ind]
 
-  # map each metric to the correct column in imp_quality
-  metric_col <- c(log_loss = 2, brier = 1, ece = 4)
-  metric_col <- c(brier = 1)
+  metric_name <- c(
+    weighted_mse = "Weighted_MSE",
+    brier = "Brier_Score",
+    log_loss = "Log_Loss",
+    auc = "AUC",
+    ece = "ECE"
+  )[[criterion]]
+
+  valid_models <- Filter(function(x) !all(is.na(x)), models)
+  if (length(valid_models) == 0) {
+    stop("No valid candidate models were supplied to `Select_Model()`.")
+  }
+  template_model <- valid_models[[1]]
+  if (!metric_name %in% names(template_model$imp_quality)) {
+    stop(
+      "Selection criterion `", criterion,
+      "` is not available in `imp_quality`."
+    )
+  }
 
   winners <- do.call(
     rbind,
-    lapply(names(metric_col), function(m) {
-      col <- metric_col[[m]]
+    lapply(metric_name, function(metric) {
       v0 <- v1 <- c()
       for (ss in models) {
         if (!all(is.na(ss))) {
-          v0 <- c(v0, ss$imp_quality[1, col])
-          v1 <- c(v1, ss$imp_quality[2, col])
+          v0 <- c(v0, ss$imp_quality[1, metric])
+          v1 <- c(v1, ss$imp_quality[2, metric])
         } else {
-          v0 <- c(v0, Inf)
-          v1 <- c(v1, Inf)
+          fallback <- if (criterion == "auc") -Inf else Inf
+          v0 <- c(v0, fallback)
+          v1 <- c(v1, fallback)
         }
       }
-      c(which.min(v0), which.min(v1)) # winner idx for outcome 0 and 1
+      if (criterion == "auc") {
+        c(which.max(v0), which.max(v1))
+      } else {
+        c(which.min(v0), which.min(v1))
+      }
     })
   )
 

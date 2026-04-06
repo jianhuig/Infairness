@@ -762,28 +762,49 @@ compute_imputation_quality <- function(Y,
   
   # Goodness of fit
   bs <- c()
+  weighted_mse <- c()
   log_loss <- c()
   auc <- c()
   ece <- c()
   for (a in nclass) {
+    idx_a <- A_labeled == a
+    y_a <- Y_labeled[idx_a]
+    p_a <- m_labeled[idx_a]
+    d_a <- C_labeled[idx_a]
+
     # Brier score
-    bs_a <- mean((Y_labeled[A_labeled == a] - m_labeled[A_labeled == a])^2)
+    bs_a <- mean((y_a - p_a)^2)
     bs <- c(bs, bs_a)
+
+    # TPR-weighted MSE used for model selection. When there are no observed
+    # positives in a group, fall back to the unweighted loss.
+    if (sum(y_a) > 0) {
+      tpr_hat_a <- sum(y_a * d_a) / sum(y_a)
+      weight_a <- (d_a - tpr_hat_a)^2
+    } else {
+      weight_a <- rep(1, length(y_a))
+    }
+
+    if (sum(weight_a) > 0) {
+      weighted_mse_a <- mean(weight_a * (y_a - p_a)^2)
+    } else {
+      weighted_mse_a <- bs_a
+    }
+    weighted_mse <- c(weighted_mse, weighted_mse_a)
+
     # Log-loss
     log_loss_a <- -mean(
-      Y_labeled[A_labeled == a] * log(m_labeled[A_labeled == a]) +
-        (1 - Y_labeled[A_labeled == a]) * log(1 - m_labeled[A_labeled == a])
+      y_a * log(p_a) +
+        (1 - y_a) * log(1 - p_a)
     )
     log_loss <- c(log_loss, log_loss_a)
     # AUC
     auc_a <- pROC::auc(
-      Y_labeled[A_labeled == a],
-      m_labeled[A_labeled == a]
+      y_a,
+      p_a
     ) %>% as.numeric()
     auc <- c(auc, auc_a)
     # ECE (use quantile bins; last bin right-closed)
-    p_a <- m_labeled[A_labeled == a]
-    y_a <- Y_labeled[A_labeled == a]
     bins <- unique(quantile(p_a, probs = seq(0, 1, by = 0.1), na.rm = TRUE))
 
     ece_a <- 0
@@ -803,6 +824,7 @@ compute_imputation_quality <- function(Y,
   }
   metrics_by_group <- cbind(
     Brier_Score = bs,
+    Weighted_MSE = weighted_mse,
     Log_Loss = log_loss,
     AUC = auc,
     ECE = ece
