@@ -20,9 +20,14 @@
 #' @param nknots Number of knots used by spline-based branches
 #' (`"Spline(S)"`, `"Spline(S) + X"`, and `"Spline Interaction"`). Default is
 #' 3. Ignored otherwise.
-#' @param cross_fit_variance Logical; if `TRUE`, use cross-fitted labeled
-#' imputations when estimating the variance through the shared imputation-quality
-#' path.
+#' @param k Number of folds used for labeled-data cross-fitting when
+#' `cross_fit_variance = TRUE`. Default is 10.
+#' @param folds Optional named list of precomputed fold assignments, keyed by
+#' group value. Supplying the same `folds` object across candidate models makes
+#' imputation-quality comparisons use the same labeled-data splits.
+#' @param cross_fit_variance Logical; if `TRUE`, use `k`-fold cross-fitted
+#' labeled imputations when estimating the variance. If `FALSE`, labeled
+#' imputations are computed in-sample.
 #' @param return_imputation_quality Logical; if `TRUE`, attach imputation
 #' quality metrics and the labeled/unlabeled imputations to the result.
 #' @return List of estimated fairness metrics and their variances.
@@ -42,6 +47,7 @@ SSFairness <- function(
   nknots = 3,
   W = NULL,
   k = 10,
+  folds = NULL,
   cross_fit_variance = FALSE,
   return_imputation_quality = FALSE,
   ...
@@ -56,6 +62,8 @@ SSFairness <- function(
       basis = basis,
       nknots = nknots,
       k = k,
+      folds = folds,
+      cross_fit = cross_fit_variance,
       ...
     )
 
@@ -70,6 +78,8 @@ SSFairness <- function(
       result$m_labeled <- quality_fit$m_labeled
       result$m_unlabeled <- quality_fit$m_unlabeled
     }
+
+    attr(result, "cv_folds") <- quality_fit$cv_folds
 
     return(result)
   }
@@ -398,72 +408,18 @@ SSFairness <- function(
 
       m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      X_a <- X_labeled[A_labeled == a, , drop = FALSE]
-      C_a <- C_labeled[A_labeled == a]
-
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-
-        basis_train <- NaturalSplineBasis(
-          S_a[train_id] %>% as.matrix(),
-          nknots,
-          return_knots = TRUE
-        )
-        fold_knots <- attr(basis_train, "knots")
-        basis_test <- NaturalSplineBasis(
-          S_a[test_id] %>% as.matrix(),
-          nknots,
-          knots = fold_knots
-        )
-
-        X_train_int <- do.call(
-          cbind,
-          lapply(seq_len(ncol(X_a)), function(j) {
-            basis_train * X_a[train_id, j]
-          })
-        )
-        X_test_int <- do.call(
-          cbind,
-          lapply(seq_len(ncol(X_a)), function(j) {
-            basis_test * X_a[test_id, j]
-          })
-        )
-
-        gamma <- tryCatch(
-          {
-            SplineRidgeRegression(
-              X = cbind(
-                basis_train,
-                C_a[train_id],
-                X_a[train_id, , drop = FALSE],
-                X_train_int
-              ) %>% as.matrix(),
-              y = Y_a[train_id]
-            )
-          },
-          error = function(e) {
-            print("Spline ridge regression produced an error")
-            print(e)
-          }
-        )$coefficients
-
-        imputed_test <- boot::inv.logit(
-          as.matrix(
-            cbind(
-              1,
-              basis_test,
-              C_a[test_id],
-              X_a[test_id, , drop = FALSE],
-              X_test_int
-            )
-          ) %*% gamma
-        )
-        m_labeled[A_labeled == a][test_id] <- imputed_test
-      }
+      imputed_labeled <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a],
+            X_labeled[A_labeled == a, , drop = FALSE],
+            X_labeled_spline_int[A_labeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
+      m_labeled[A_labeled == a] <- imputed_labeled
     } else if (basis_a == "Interaction") {
       X_int <- S * as.matrix(X)
       X_int <- cbind(X, X_int)
@@ -525,67 +481,18 @@ SSFairness <- function(
 
       m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      X_a <- X_labeled_int[A_labeled == a, , drop = FALSE]
-      C_a <- C_labeled[A_labeled == a]
-
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-
-        alpha_fold <- tryCatch(
-          {
-            find_alpha_glm(
-              Y = Y_a[train_id],
-              covariates_matrix = as.matrix(S_a[train_id]),
-              additional_matrix = as.matrix(cbind(
-                X_a[train_id, ],
-                C_a[train_id]
-              ))
-            )
-          },
-          error = function(e) {
-            1
-          }
-        )
-
-        basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
-        basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
-
-        gamma <- tryCatch(
-          {
-            RidgeRegression(
-              X = cbind(
-                basis_train[, -1],
-                C_a[train_id],
-                X_a[train_id, ]
-              ) %>%
-                as.matrix(),
-              y = Y_a[train_id],
-              weights = NULL
-            )
-          },
-          error = function(e) {
-            print("Ridge Regression produced an error")
-            print(e)
-          }
-        )$coefficients
-
-        imputed_test <- boot::inv.logit(
-          as.matrix(
-            cbind(
-              1,
-              basis_test[, -1],
-              C_a[test_id],
-              X_a[test_id, ]
-            )
-          ) %*%
-            gamma
-        )
-        m_labeled[A_labeled == a][test_id] <- imputed_test
-      }
+      imputed_labeled <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, -1],
+            C_labeled[A_labeled == a],
+            X_labeled_int[A_labeled == a, ]
+          )
+        ) %*%
+          gamma$coefficients
+      )
+      m_labeled[A_labeled == a] <- imputed_labeled
     } else if (basis_a == "Beta") {
       S_calibrated <- FitParametricCalibration(
         Y_labeled,
@@ -609,20 +516,14 @@ SSFairness <- function(
       bandwidth <- sqrt(var(S_labeled[A_labeled == a])) / (length(Y_labeled[A_labeled == a])^0.45)
       mhat <- npreg(S_labeled[A_labeled == a], Y_labeled[A_labeled == a], S_unlabeled, bandwidth)
       m_unlabeled[A_unlabeled == a] <- mhat[A_unlabeled == a]
-      
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        
-        bandwidth_fold <- sqrt(var(S_a[train_id])) / (length(Y_a[train_id])^0.45)
-        mhat_fold <- npreg(S_a[train_id], Y_a[train_id], S_a[test_id], bandwidth_fold)
-        m_labeled[A_labeled == a][test_id] <- mhat_fold
-      }
-      } else {
+
+      m_labeled[A_labeled == a] <- npreg(
+        S_labeled[A_labeled == a],
+        Y_labeled[A_labeled == a],
+        S_labeled[A_labeled == a],
+        bandwidth
+      )
+    } else {
       stop("Basis not recognized.")
     }
   }

@@ -12,6 +12,8 @@
 Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
   class <- sort(unique(A))
   out <- pest
+  value_cols <- setdiff(names(out), "Metric")
+  out[, value_cols] <- NA_real_
   for (i in class) {
     D <- 1 * (S > threshold)
     C <- 1 * (A == i)
@@ -134,16 +136,17 @@ Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
   }
 
   if (length(class) == 2) {
-    out[, "Delta"] <- rowSums(out[, paste0("Group", class)])
-  } else {
+    out[, "Delta"] <- rowSums(out[, paste0("Group", class), drop = FALSE])
+  } else if (length(class) > 2) {
     k <- length(class)
-    pest_mean <- rowMeans(pest[, paste0("Group", class)])
+    pest_groups <- pest[, paste0("Group", class), drop = FALSE]
+    out_groups <- out[, paste0("Group", class), drop = FALSE]
+    pest_mean <- rowMeans(pest_groups)
     out[, "var"] <- 4 / (k - 1)^2 *
-      rowSums((pest[, paste0("Group", class)] - pest_mean)^2
-        * out[, paste0("Group", class)])
+      rowSums((pest_groups - pest_mean)^2 * out_groups)
     out[, "gei"] <- 1 / k^2 * rowSums(
-      ((pest[, paste0("Group", class)] - pest_mean) / (pest_mean)^2 -
-        2 * pest[, "gei"] / pest_mean)^2 * out[, paste0("Group", class)]
+      ((pest_groups - pest_mean) / (pest_mean)^2 -
+        2 * pest[, "gei"] / pest_mean)^2 * out_groups
     )
   }
 

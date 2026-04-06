@@ -14,6 +14,7 @@ SSFairness(
   nknots = 3,
   W = NULL,
   k = 10,
+  folds = NULL,
   cross_fit_variance = FALSE,
   return_imputation_quality = FALSE,
   ...
@@ -45,9 +46,16 @@ interaction terms so the shape in `S` can vary with `X`.}
 (`"Spline(S)"`, `"Spline(S) + X"`, and `"Spline Interaction"`). Default is
 3. Ignored otherwise.}
 
-\item{cross_fit_variance}{Logical; if `TRUE`, use cross-fitted labeled
-imputations when estimating the variance through the shared imputation-quality
-path.}
+\item{k}{Number of folds used for labeled-data cross-fitting when
+`cross_fit_variance = TRUE`. Default is 10.}
+
+\item{folds}{Optional named list of precomputed fold assignments, keyed by
+group value. Supplying the same `folds` object across candidate models makes
+imputation-quality comparisons use the same labeled-data splits.}
+
+\item{cross_fit_variance}{Logical; if `TRUE`, use `k`-fold cross-fitted
+labeled imputations when estimating the variance. If `FALSE`, labeled
+imputations are computed in-sample.}
 
 \item{return_imputation_quality}{Logical; if `TRUE`, attach imputation
 quality metrics and the labeled/unlabeled imputations to the result.}

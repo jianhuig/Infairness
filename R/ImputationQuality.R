@@ -1,5 +1,55 @@
 # Purpose: Imputation-quality helpers for semi-supervised estimation.
 
+make_group_folds <- function(Y_labeled, A_labeled, k) {
+  nclass <- sort(unique(A_labeled))
+  folds <- setNames(vector("list", length(nclass)), as.character(nclass))
+
+  for (a in nclass) {
+    Y_a <- Y_labeled[A_labeled == a]
+    k_a <- min(k, length(Y_a))
+
+    if (k_a < 2) {
+      folds[[as.character(a)]] <- rep.int(1L, length(Y_a))
+      next
+    }
+
+    if (length(unique(Y_a)) > 1 && all(table(Y_a) >= 2)) {
+      fold_a <- caret::createFolds(factor(Y_a), k = k_a, list = FALSE)
+    } else {
+      fold_a <- sample(rep(seq_len(k_a), length.out = length(Y_a)))
+    }
+
+    folds[[as.character(a)]] <- as.integer(fold_a)
+  }
+
+  folds
+}
+
+validate_group_folds <- function(folds, Y_labeled, A_labeled) {
+  nclass <- sort(unique(A_labeled))
+
+  if (!is.list(folds) || is.null(names(folds))) {
+    stop("`folds` must be a named list keyed by group values.")
+  }
+
+  for (a in nclass) {
+    key <- as.character(a)
+    if (is.null(folds[[key]])) {
+      stop("Missing fold assignments for group ", a, ".")
+    }
+
+    expected_n <- sum(A_labeled == a)
+    if (length(folds[[key]]) != expected_n) {
+      stop(
+        "Fold assignments for group ", a,
+        " must have length ", expected_n, "."
+      )
+    }
+  }
+
+  folds
+}
+
 compute_imputation_quality <- function(Y,
                                        S,
                                        A,
@@ -8,6 +58,8 @@ compute_imputation_quality <- function(Y,
                                        basis = c("Poly(S)", "Poly(S)"),
                                        nknots = 3,
                                        k = 10,
+                                       folds = NULL,
+                                       cross_fit = FALSE,
                                        alphas = NULL,
                                        ...) {
   labeled_ind <- which(!is.na(Y))
@@ -35,6 +87,14 @@ compute_imputation_quality <- function(Y,
   nclass <- sort(unique(A))
   if (length(basis) == 1) {
     basis <- rep(basis, length(nclass))
+  }
+
+  if (cross_fit) {
+    if (is.null(folds)) {
+      folds <- make_group_folds(Y_labeled, A_labeled, k)
+    } else {
+      folds <- validate_group_folds(folds, Y_labeled, A_labeled)
+    }
   }
 
   m_unlabeled <- S_unlabeled
@@ -86,20 +146,31 @@ compute_imputation_quality <- function(Y,
         ) %*% gamma$coefficients
       )
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+      m_labeled[A_labeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, -1],
+            C_labeled[A_labeled == a]
+          )
+        ) %*% gamma$coefficients
+      )
 
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        alpha_fold <- alphas[a + 1]
-        basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
-        basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        C_a <- C_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
 
-        gamma <- tryCatch(
-          {
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          alpha_fold <- alphas[a + 1]
+          basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
+          basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
+
+          gamma <- tryCatch(
+            {
             RidgeRegression(
               X = cbind(basis_train[, -1], C_a[train_id]) %>% as.matrix(),
               y = Y_a[train_id]
@@ -111,9 +182,10 @@ compute_imputation_quality <- function(Y,
           }
         )$coefficients
 
-        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
-          as.matrix(cbind(1, basis_test[, -1], C_a[test_id])) %*% gamma
-        )
+          m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+            as.matrix(cbind(1, basis_test[, -1], C_a[test_id])) %*% gamma
+          )
+        }
       }
     } else if (basis_a == "Poly(S) + X") {
       alpha <- tryCatch(
@@ -162,21 +234,33 @@ compute_imputation_quality <- function(Y,
         ) %*% gamma$coefficients
       )
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      X_a <- X_labeled[A_labeled == a, , drop = FALSE]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+      m_labeled[A_labeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, -1],
+            C_labeled[A_labeled == a],
+            X_labeled[A_labeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
 
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        alpha_fold <- alphas[a + 1]
-        basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
-        basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        X_a <- X_labeled[A_labeled == a, , drop = FALSE]
+        C_a <- C_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
 
-        gamma <- tryCatch(
-          {
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          alpha_fold <- alphas[a + 1]
+          basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
+          basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
+
+          gamma <- tryCatch(
+            {
             RidgeRegression(
               X = cbind(
                 basis_train[, -1],
@@ -192,11 +276,12 @@ compute_imputation_quality <- function(Y,
           }
         )$coefficients
 
-        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
-          as.matrix(
-            cbind(1, basis_test[, -1], C_a[test_id], X_a[test_id, ])
-          ) %*% gamma
-        )
+          m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+            as.matrix(
+              cbind(1, basis_test[, -1], C_a[test_id], X_a[test_id, ])
+            ) %*% gamma
+          )
+        }
       }
     } else if (basis_a == "Spline(S)") {
       alphas <- c(alphas, nknots)
@@ -235,24 +320,35 @@ compute_imputation_quality <- function(Y,
         ) %*% gamma$coefficients
       )
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+      m_labeled[A_labeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a]
+          )
+        ) %*% gamma$coefficients
+      )
 
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots, return_knots = TRUE)
-        fold_knots <- attr(basis_train, "knots")
-        basis_test <- NaturalSplineBasis(
-          S_a[test_id] %>% as.matrix(),
-          nknots,
-          knots = fold_knots
-        )
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        C_a <- C_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
 
-        gamma <- tryCatch(
-          {
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots, return_knots = TRUE)
+          fold_knots <- attr(basis_train, "knots")
+          basis_test <- NaturalSplineBasis(
+            S_a[test_id] %>% as.matrix(),
+            nknots,
+            knots = fold_knots
+          )
+
+          gamma <- tryCatch(
+            {
             SplineRidgeRegression(
               X = cbind(basis_train, C_a[train_id]) %>% as.matrix(),
               y = Y_a[train_id]
@@ -264,9 +360,10 @@ compute_imputation_quality <- function(Y,
           }
         )$coefficients
 
-        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
-          as.matrix(cbind(1, basis_test, C_a[test_id])) %*% gamma
-        )
+          m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+            as.matrix(cbind(1, basis_test, C_a[test_id])) %*% gamma
+          )
+        }
       }
     } else if (basis_a == "Spline(S) + X") {
       alphas <- c(alphas, nknots)
@@ -307,25 +404,37 @@ compute_imputation_quality <- function(Y,
         ) %*% gamma$coefficients
       )
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      X_a <- X_labeled[A_labeled == a, , drop = FALSE]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+      m_labeled[A_labeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a],
+            X_labeled[A_labeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
 
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots, return_knots = TRUE)
-        fold_knots <- attr(basis_train, "knots")
-        basis_test <- NaturalSplineBasis(
-          S_a[test_id] %>% as.matrix(),
-          nknots,
-          knots = fold_knots
-        )
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        X_a <- X_labeled[A_labeled == a, , drop = FALSE]
+        C_a <- C_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
 
-        gamma <- tryCatch(
-          {
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          basis_train <- NaturalSplineBasis(S_a[train_id] %>% as.matrix(), nknots, return_knots = TRUE)
+          fold_knots <- attr(basis_train, "knots")
+          basis_test <- NaturalSplineBasis(
+            S_a[test_id] %>% as.matrix(),
+            nknots,
+            knots = fold_knots
+          )
+
+          gamma <- tryCatch(
+            {
             SplineRidgeRegression(
               X = cbind(
                 basis_train,
@@ -341,11 +450,12 @@ compute_imputation_quality <- function(Y,
           }
         )$coefficients
 
-        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
-          as.matrix(
-            cbind(1, basis_test, C_a[test_id], X_a[test_id, ])
-          ) %*% gamma
-        )
+          m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+            as.matrix(
+              cbind(1, basis_test, C_a[test_id], X_a[test_id, ])
+            ) %*% gamma
+          )
+        }
       }
     } else if (basis_a == "Spline Interaction") {
       alphas <- c(alphas, nknots)
@@ -401,42 +511,55 @@ compute_imputation_quality <- function(Y,
         ) %*% gamma$coefficients
       )
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      X_a <- X_labeled[A_labeled == a, , drop = FALSE]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+      m_labeled[A_labeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, ],
+            C_labeled[A_labeled == a],
+            X_labeled[A_labeled == a, , drop = FALSE],
+            X_labeled_spline_int[A_labeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
 
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        basis_train <- NaturalSplineBasis(
-          S_a[train_id] %>% as.matrix(),
-          nknots,
-          return_knots = TRUE
-        )
-        fold_knots <- attr(basis_train, "knots")
-        basis_test <- NaturalSplineBasis(
-          S_a[test_id] %>% as.matrix(),
-          nknots,
-          knots = fold_knots
-        )
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        X_a <- X_labeled[A_labeled == a, , drop = FALSE]
+        C_a <- C_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
 
-        X_train_int <- do.call(
-          cbind,
-          lapply(seq_len(ncol(X_a)), function(j) {
-            basis_train * X_a[train_id, j]
-          })
-        )
-        X_test_int <- do.call(
-          cbind,
-          lapply(seq_len(ncol(X_a)), function(j) {
-            basis_test * X_a[test_id, j]
-          })
-        )
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          basis_train <- NaturalSplineBasis(
+            S_a[train_id] %>% as.matrix(),
+            nknots,
+            return_knots = TRUE
+          )
+          fold_knots <- attr(basis_train, "knots")
+          basis_test <- NaturalSplineBasis(
+            S_a[test_id] %>% as.matrix(),
+            nknots,
+            knots = fold_knots
+          )
 
-        gamma <- tryCatch(
-          {
+          X_train_int <- do.call(
+            cbind,
+            lapply(seq_len(ncol(X_a)), function(j) {
+              basis_train * X_a[train_id, j]
+            })
+          )
+          X_test_int <- do.call(
+            cbind,
+            lapply(seq_len(ncol(X_a)), function(j) {
+              basis_test * X_a[test_id, j]
+            })
+          )
+
+          gamma <- tryCatch(
+            {
             SplineRidgeRegression(
               X = cbind(
                 basis_train,
@@ -453,17 +576,18 @@ compute_imputation_quality <- function(Y,
           }
         )$coefficients
 
-        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
-          as.matrix(
-            cbind(
-              1,
-              basis_test,
-              C_a[test_id],
-              X_a[test_id, , drop = FALSE],
-              X_test_int
-            )
-          ) %*% gamma
-        )
+          m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+            as.matrix(
+              cbind(
+                1,
+                basis_test,
+                C_a[test_id],
+                X_a[test_id, , drop = FALSE],
+                X_test_int
+              )
+            ) %*% gamma
+          )
+        }
       }
     } else if (basis_a == "Interaction") {
       X_int <- S * as.matrix(X)
@@ -517,31 +641,43 @@ compute_imputation_quality <- function(Y,
         ) %*% gamma$coefficients
       )
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      X_a <- X_labeled_int[A_labeled == a, , drop = FALSE]
-      C_a <- C_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
+      m_labeled[A_labeled == a] <- boot::inv.logit(
+        as.matrix(
+          cbind(
+            1,
+            basis_labeled[A_labeled == a, -1],
+            C_labeled[A_labeled == a],
+            X_labeled_int[A_labeled == a, ]
+          )
+        ) %*% gamma$coefficients
+      )
 
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        alpha_fold <- tryCatch(
-          {
-            find_alpha_glm(
-              Y = Y_a[train_id],
-              covariates_matrix = as.matrix(S_a[train_id]),
-              additional_matrix = as.matrix(cbind(X_a[train_id, ], C_a[train_id]))
-            )
-          },
-          error = function(e) 1
-        )
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        X_a <- X_labeled_int[A_labeled == a, , drop = FALSE]
+        C_a <- C_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
 
-        basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
-        basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          alpha_fold <- tryCatch(
+            {
+              find_alpha_glm(
+                Y = Y_a[train_id],
+                covariates_matrix = as.matrix(S_a[train_id]),
+                additional_matrix = as.matrix(cbind(X_a[train_id, ], C_a[train_id]))
+              )
+            },
+            error = function(e) 1
+          )
 
-        gamma <- tryCatch(
-          {
+          basis_train <- polynomial(S_a[train_id] %>% as.data.frame(), alpha_fold)
+          basis_test <- polynomial(S_a[test_id] %>% as.data.frame(), alpha_fold)
+
+          gamma <- tryCatch(
+            {
             RidgeRegression(
               X = cbind(
                 basis_train[, -1],
@@ -558,11 +694,12 @@ compute_imputation_quality <- function(Y,
           }
         )$coefficients
 
-        m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
-          as.matrix(
-            cbind(1, basis_test[, -1], C_a[test_id], X_a[test_id, ])
-          ) %*% gamma
-        )
+          m_labeled[which(A_labeled == a)[test_id]] <- boot::inv.logit(
+            as.matrix(
+              cbind(1, basis_test[, -1], C_a[test_id], X_a[test_id, ])
+            ) %*% gamma
+          )
+        }
       }
     } else if (basis_a == "Beta") {
       alphas <- c(alphas, NA_real_)
@@ -599,15 +736,24 @@ compute_imputation_quality <- function(Y,
       )
       m_unlabeled[A_unlabeled == a] <- mhat[A_unlabeled == a]
 
-      Y_a <- Y_labeled[A_labeled == a]
-      S_a <- S_labeled[A_labeled == a]
-      fold <- caret::createFolds(factor(Y_a), k = k, list = FALSE)
-      for (i in 1:k) {
-        train_id <- which(fold != i)
-        test_id <- which(fold == i)
-        bandwidth_fold <- sqrt(var(S_a[train_id])) / (length(Y_a[train_id])^0.45)
-        mhat_fold <- npreg(S_a[train_id], Y_a[train_id], S_a[test_id], bandwidth_fold)
-        m_labeled[which(A_labeled == a)[test_id]] <- mhat_fold
+      m_labeled[A_labeled == a] <- npreg(
+        S_labeled[A_labeled == a],
+        Y_labeled[A_labeled == a],
+        S_labeled[A_labeled == a],
+        bandwidth
+      )
+
+      if (cross_fit) {
+        Y_a <- Y_labeled[A_labeled == a]
+        S_a <- S_labeled[A_labeled == a]
+        fold <- folds[[as.character(a)]]
+        for (i in sort(unique(fold))) {
+          train_id <- which(fold != i)
+          test_id <- which(fold == i)
+          bandwidth_fold <- sqrt(var(S_a[train_id])) / (length(Y_a[train_id])^0.45)
+          mhat_fold <- npreg(S_a[train_id], Y_a[train_id], S_a[test_id], bandwidth_fold)
+          m_labeled[which(A_labeled == a)[test_id]] <- mhat_fold
+        }
       }
     } else {
       stop("Basis not recognized.")
@@ -675,5 +821,5 @@ compute_imputation_quality <- function(Y,
   )
   
   return(list(est = est, var = var, alpha = alphas, imp_quality = metrics_by_group,
-    m_labeled = m_labeled, m_unlabeled = m_unlabeled))
+    m_labeled = m_labeled, m_unlabeled = m_unlabeled, cv_folds = folds))
 }

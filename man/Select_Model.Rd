@@ -7,5 +7,8 @@
 Select_Model(models, Y, S, A, threshold)
 }
 \description{
-Select best model
+When candidate models were fit with cross-fitted imputation quality, they
+should share the same labeled-data folds. Pass the same `folds` argument to
+each `SSFairness(..., return_imputation_quality = TRUE)` call before
+comparing them here.
 }

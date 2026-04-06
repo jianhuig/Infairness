@@ -7,10 +7,11 @@
 Use `Audit_Fairness()` as the high-level entry point or call `SSFairness()`
 directly when you want more control over the semi-supervised estimator.
 
-`SSFairness()` now supports two useful switches:
+`SSFairness()` now supports useful controls:
 
 - `cross_fit_variance = TRUE` to use the cross-fitted imputation path for variance estimation
 - `return_imputation_quality = TRUE` to return imputation diagnostics plus the labeled and unlabeled imputations
+- `folds = ...` to reuse the same labeled-data folds across candidate models when comparing them with `Select_Model()`
 
 The semi-supervised basis options now include polynomial, natural spline,
 interaction, beta-calibration, and kernel branches. The natural spline path is
@@ -33,6 +34,10 @@ adds spline-by-covariate interactions so the shape in `S` can vary with `X`.
 - `SSFairness()`: semi-supervised fairness estimation and optional imputation diagnostics
 - `DataGeneration()`: synthetic data generator for simulations
 - `Select_Model()`: candidate-model selection helper
+
+When comparing candidate semi-supervised models with cross-fitted imputation
+quality, reuse the same `folds` object across all `SSFairness()` calls so the
+comparison is based on the same labeled-data splits.
 
 ## Notes
 

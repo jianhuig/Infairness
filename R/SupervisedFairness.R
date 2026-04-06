@@ -23,7 +23,11 @@ SupervisedFairness <- function(Y,
   Y <- Y[lab]; S <- S[lab]; A <- A[lab]
   n <- length(Y)
   if (is.null(W)) W <- rep(1, n)
-  folds <- sample(rep(1:V, length.out = n))
+  folds <- integer(n)
+  for (a in sort(unique(A))) {
+    idx_a <- which(A == a)
+    folds[idx_a] <- sample(rep(1:V, length.out = length(idx_a)))
+  }
   
   # Accumulators
   accumulated_sigma <- NULL

@@ -1,7 +1,31 @@
 #' Select best model
+#'
+#' When candidate models were fit with cross-fitted imputation quality, they
+#' should share the same labeled-data folds. Pass the same `folds` argument to
+#' each `SSFairness(..., return_imputation_quality = TRUE)` call before
+#' comparing them here.
 #' @export
 
 Select_Model <- function(models, Y, S, A, threshold) {
+  model_folds <- lapply(models, function(x) attr(x, "cv_folds"))
+  non_null_folds <- Filter(Negate(is.null), model_folds)
+
+  if (length(non_null_folds) > 1) {
+    same_folds <- vapply(
+      non_null_folds[-1],
+      identical,
+      logical(1),
+      y = non_null_folds[[1]]
+    )
+    if (!all(same_folds)) {
+      stop(
+        "Candidate models were evaluated on different cross-fitting folds. ",
+        "Pass the same `folds` argument to each SSFairness() call before ",
+        "calling Select_Model()."
+      )
+    }
+  }
+
   labeled_ind <- which(!is.na(Y))
 
   # Create Indicator
