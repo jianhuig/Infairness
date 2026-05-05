@@ -13,7 +13,8 @@ Influence_curve(pest, Y, S, A, m = NULL, threshold = 0.5, method)
 
 \item{A}{Group indicator in labeled dataset.}
 
-\item{threshold}{Threshold for classification based on the model score Default value is 0.5.}
+\item{threshold}{Threshold for classification based on the model score.
+Default value is 0.5. Can also be a vector with one value per observation.}
 }
 \description{
 Influence Curves

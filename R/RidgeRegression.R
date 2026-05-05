@@ -6,6 +6,9 @@
 #' @param weights Numeric vector of weights.
 #' @param family Exponential family of interest.
 #' @param exponents Sequence of exponents for generating lambda values.
+#' @param penalty_factor Optional per-column penalty factors passed to
+#' `glmnet::cv.glmnet()`. Use 0 for unpenalized columns and 1 for the default
+#' ridge penalty.
 #' @importFrom glmnet glmnet cv.glmnet
 #' @export
 #' @return Vector containing regression coefficients.
@@ -78,9 +81,68 @@
 # }
 
 
+ridge_is_binary_column <- function(x,
+                                   tol = sqrt(.Machine$double.eps)) {
+  values <- unique(stats::na.omit(as.numeric(x)))
+
+  length(values) > 0L &&
+    length(values) <= 2L &&
+    all(abs(values - round(values)) < tol)
+}
+
+ridge_binary_main_effect_penalty <- function(X,
+                                             unpenalize_binary = FALSE) {
+  if (is.null(X)) {
+    return(numeric(0))
+  }
+
+  X <- as.matrix(X)
+  if (!unpenalize_binary || ncol(X) == 0L) {
+    return(rep(1, ncol(X)))
+  }
+
+  as.numeric(!vapply(
+    seq_len(ncol(X)),
+    function(j) ridge_is_binary_column(X[, j]),
+    logical(1)
+  ))
+}
+
+ridge_design_penalty_factor <- function(n_basis = 0L,
+                                        D = NULL,
+                                        X = NULL,
+                                        X_interaction = NULL,
+                                        unpenalize_binary_X = FALSE) {
+  parts <- list(rep(1, n_basis))
+
+  if (!is.null(D)) {
+    parts[[length(parts) + 1L]] <- rep(1, ncol(as.matrix(D)))
+  }
+  if (!is.null(X)) {
+    parts[[length(parts) + 1L]] <- ridge_binary_main_effect_penalty(
+      X,
+      unpenalize_binary = unpenalize_binary_X
+    )
+  }
+  if (!is.null(X_interaction)) {
+    parts[[length(parts) + 1L]] <- rep(1, ncol(as.matrix(X_interaction)))
+  }
+
+  unname(unlist(parts, use.names = FALSE))
+}
+
 RidgeRegression <- function(X, y, weights = NULL,
-                            exponents = seq(1.05, 2.5, length.out = 100)) {
+                            exponents = seq(1.05, 2.5, length.out = 100),
+                            penalty_factor = NULL) {
+  X <- as.matrix(X)
   if (is.null(weights)) weights <- rep(1, length(y))
+  if (is.null(penalty_factor)) {
+    penalty_factor <- rep(1, ncol(X))
+  }
+  if (length(penalty_factor) != ncol(X)) {
+    stop("`penalty_factor` must have one value per column of `X`.")
+  }
+
   n <- length(y)
   
   # Data-adaptive scaling
@@ -101,6 +163,7 @@ RidgeRegression <- function(X, y, weights = NULL,
     foldid = foldid,
     standardize = TRUE,
     lambda = sort(original_lambdas, decreasing = TRUE),
+    penalty.factor = penalty_factor,
     family = "binomial"
   )
   

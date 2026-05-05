@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 ^scripts$
 ^scripts/
+^.*\.tar\.gz$

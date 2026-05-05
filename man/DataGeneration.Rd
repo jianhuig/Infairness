@@ -11,10 +11,9 @@ DataGeneration(n_labeled, N_unlabeled, prot_att_prevalence, model, rho = 0.4)
 
 \item{N_unlabeled}{Number of unlabeled examples.}
 
-\item{prot_att_prevalence}{Prevalence of the protected attribute
-If the number of class is more than two, the length of this vector
-should be equal to the number of class. If the number of class is two,
-the length of this vector can either be one or two.}
+\item{prot_att_prevalence}{Prevalence of the protected attribute. For a
+single value, this is interpreted as `P(A = 1)`. For a length-two vector,
+entries are interpreted as the relative prevalences of groups 0 and 1.}
 
 \item{model}{Indicator to generate from which model.
 possible options: "scenario 1", "scenario 2"}

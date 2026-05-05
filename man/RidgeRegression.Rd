@@ -8,7 +8,8 @@ RidgeRegression(
   X,
   y,
   weights = NULL,
-  exponents = seq(1.05, 2.5, length.out = 100)
+  exponents = seq(1.05, 2.5, length.out = 100),
+  penalty_factor = NULL
 )
 }
 \arguments{
@@ -19,6 +20,10 @@ RidgeRegression(
 \item{weights}{Numeric vector of weights.}
 
 \item{exponents}{Sequence of exponents for generating lambda values.}
+
+\item{penalty_factor}{Optional per-column penalty factors passed to
+`glmnet::cv.glmnet()`. Use 0 for unpenalized columns and 1 for the default
+ridge penalty.}
 
 \item{coef}{Coefficient for scaling lambda values.}
 

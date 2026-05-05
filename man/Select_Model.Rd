@@ -10,17 +10,30 @@ Select_Model(
   S,
   A,
   threshold,
-  criterion = c("weighted_mse", "brier", "log_loss", "auc", "ece")
+  criterion = "weighted_mse",
+  control_variate = FALSE
 )
 }
 \arguments{
 \item{criterion}{Model-selection criterion computed from `imp_quality`.
-Default is `"weighted_mse"`, which uses the TPR-weighted cross-fitted
-squared error.}
+Default is `"weighted_mse"`, which uses a TPR-weighted cross-fitted
+squared-error criterion. `Select_Model()` uses this single criterion
+directly, not a vote across metrics. Use `"bic"` for the plain BIC score
+or `"mbic"` for a modified BIC with penalty multiplier
+`min(n^0.1, log(n))`, stored for regression-basis candidates.}
+
+\item{control_variate}{Logical; if `TRUE`, apply the control-variate style
+bias correction after combining the selected group-specific imputation
+models.}
 }
 \description{
 When candidate models were fit with cross-fitted imputation quality, they
 should share the same labeled-data folds. Pass the same `folds` argument to
 each `SSFairness(..., return_imputation_quality = TRUE)` call before
 comparing them here.
+}
+\value{
+List containing `est`, `var`, and `alpha`. When `control_variate = TRUE`,
+the returned list also contains `cv_weights`, the estimated
+control-variate coefficient used for each metric and group.
 }

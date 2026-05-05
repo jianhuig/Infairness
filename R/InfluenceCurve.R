@@ -6,16 +6,23 @@
 #' @param Y Outcome in labeled dataset.
 #' @param S Model score in labeled dataset.
 #' @param A Group indicator in labeled dataset.
-#' @param threshold Threshold for classification based on the model score Default value is 0.5.
+#' @param threshold Threshold for classification based on the model score.
+#' Default value is 0.5. Can also be a vector with one value per observation.
 #' @export
 
 Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {
+  if (length(threshold) == 1) {
+    threshold <- rep(threshold, length(S))
+  } else if (length(threshold) != length(S)) {
+    stop("`threshold` must have length 1 or length equal to `S`.")
+  }
+
   class <- sort(unique(A))
   out <- pest
   value_cols <- setdiff(names(out), "Metric")
   out[, value_cols] <- NA_real_
+  D <- 1 * (S > threshold)
   for (i in class) {
-    D <- 1 * (S > threshold)
     C <- 1 * (A == i)
     mu_Y <- mean(Y[A == i])
     mu_D <- mean(D[A == i])

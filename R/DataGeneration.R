@@ -5,15 +5,47 @@
 #'
 #' @param n_labeled Number of labeled examples.
 #' @param N_unlabeled Number of unlabeled examples.
-#' @param prot_att_prevalence Prevalence of the protected attribute
-#' If the number of class is more than two, the length of this vector
-#' should be equal to the number of class. If the number of class is two,
-#' the length of this vector can either be one or two.
+#' @param prot_att_prevalence Prevalence of the protected attribute. For a
+#' single value, this is interpreted as `P(A = 1)`. For a length-two vector,
+#' entries are interpreted as the relative prevalences of groups 0 and 1.
 #' @param model Indicator to generate from which model.
 #' possible options: "scenario 1", "scenario 2"
 #' @param rho Correlation between covariates. Default is 0.4.
 #' @return Data.frame.
 #' @export
+
+resolve_binary_protected_prevalence <- function(prot_att_prevalence) {
+  prevalence <- as.numeric(prot_att_prevalence)
+
+  if (length(prevalence) == 1L) {
+    p_group1 <- prevalence
+  } else if (length(prevalence) == 2L) {
+    if (any(prevalence < 0) || sum(prevalence) <= 0) {
+      stop("`prot_att_prevalence` must contain nonnegative values with positive sum.")
+    }
+    p_group1 <- prevalence[2] / sum(prevalence)
+  } else {
+    stop("This data generator currently supports binary protected attributes only.")
+  }
+
+  if (!is.finite(p_group1) || p_group1 <= 0 || p_group1 >= 1) {
+    stop("Protected-attribute prevalence for group 1 must be strictly between 0 and 1.")
+  }
+
+  p_group1
+}
+
+generate_binary_protected_attribute <- function(latent_A,
+                                                prot_att_prevalence) {
+  p_group1 <- resolve_binary_protected_prevalence(prot_att_prevalence)
+  n <- length(latent_A)
+  n_group1 <- round(n * p_group1)
+  n_group1 <- min(max(n_group1, 1L), n - 1L)
+
+  A <- integer(n)
+  A[order(latent_A, decreasing = TRUE)[seq_len(n_group1)]] <- 1L
+  A
+}
 
 DataGeneration <- function(n_labeled,
                            N_unlabeled,
@@ -36,7 +68,10 @@ DataGeneration <- function(n_labeled,
   
   # Placeholder for Y
   Y <- rep(NA, N_total)
-  A <- ifelse(covariates[, "A"] > qnorm(1 - prot_att_prevalence), 1, 0)
+  A <- generate_binary_protected_attribute(
+    covariates[, "A"],
+    prot_att_prevalence
+  )
   W <- covariates[, 11:15]
   X <- covariates[, 1:10]
   

@@ -5,7 +5,8 @@
 #' @param Y Outcome or imputed outcome.
 #' @param S Model score.
 #' @param A Group indicator.
-#' @param threshold Classification threshold.
+#' @param threshold Classification threshold. Can be a scalar or a vector
+#' with one value per observation.
 #' @param W Optional observation weights.
 #'
 #' @export
@@ -14,10 +15,16 @@ get_metric <- function(Y, S, A, threshold = 0.5, W = NULL) {
     W <- rep(1, length(Y))
   }
 
+  if (length(threshold) == 1) {
+    threshold <- rep(threshold, length(S))
+  } else if (length(threshold) != length(S)) {
+    stop("`threshold` must have length 1 or length equal to `S`.")
+  }
+
   class <- sort(unique(A))
   out <- c()
   for (i in class) {
-    C <- 1 * (S[A == i] > threshold)
+    C <- 1 * (S[A == i] > threshold[A == i])
     P <- sum(Y[A == i] * W[A == i])
     N <- sum((1 - Y[A == i]) * W[A == i])
     TP <- sum(Y[A == i] * C * W[A == i])

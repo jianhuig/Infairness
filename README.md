@@ -12,6 +12,7 @@ directly when you want more control over the semi-supervised estimator.
 - `cross_fit_variance = TRUE` to use the cross-fitted imputation path for variance estimation
 - `return_imputation_quality = TRUE` to return imputation diagnostics plus the labeled and unlabeled imputations
 - `folds = ...` to reuse the same labeled-data folds across candidate models when comparing them with `Select_Model()`
+- `ridge_unpenalize_binary_X = TRUE` to leave binary `X` main effects unpenalized in ridge fits while still penalizing their interaction terms
 
 The semi-supervised basis options now include polynomial, natural spline,
 interaction, beta-calibration, and kernel branches. The natural spline path is
@@ -34,9 +35,10 @@ adds spline-by-covariate interactions so the shape in `S` can vary with `X`.
 - `SSFairness()`: semi-supervised fairness estimation and optional imputation diagnostics
 - `DataGeneration()`: synthetic data generator for simulations
 - `Select_Model()`: candidate-model selection helper
-  Default selection now uses a TPR-weighted cross-fitted squared-error
-  criterion, with `criterion = "brier"` still available for the plain Brier
-  score.
+  Default selection uses the TPR-weighted cross-fitted squared-error
+  criterion directly, with `criterion = "bic"` for plain BIC and
+  `criterion = "mbic"` for the modified BIC penalty `min(n^0.1, log(n))`
+  on the regression-basis branches.
 
 When comparing candidate semi-supervised models with cross-fitted imputation
 quality, reuse the same `folds` object across all `SSFairness()` calls so the

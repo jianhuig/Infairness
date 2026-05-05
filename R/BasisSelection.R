@@ -90,18 +90,29 @@ find_alpha_glm <- function(Y, covariates_matrix, additional_matrix = NULL,
 #' @param P_total Total number of available predictors.
 #' @param gamma_ebic EBIC penalty parameter.
 #' @param penalize_intercept Whether to include the intercept in the penalty.
+#' @param split_idx Optional permutation of row indices used to define the
+#' two halves of the GBIC cross-fit split. When omitted, a random split is
+#' generated.
 #'
 #' @return Generalized BIC score.
 #' @export
 compute_gbic <- function(Y, covariates_matrix, weights = NULL,
                          P_total, gamma_ebic = 0.5,
-                         penalize_intercept = FALSE) {
+                         penalize_intercept = FALSE,
+                         split_idx = NULL) {
   n0 <- length(Y)
   if (is.null(weights)) {
     weights <- rep(1, n0)
   }
 
-  idx <- sample.int(n0)
+  if (is.null(split_idx)) {
+    idx <- sample.int(n0)
+  } else {
+    idx <- as.integer(split_idx)
+    if (length(idx) != n0 || !setequal(idx, seq_len(n0))) {
+      stop("`split_idx` must be a permutation of 1:length(Y).")
+    }
+  }
   i1 <- idx[1:floor(n0 / 2)]
   i2 <- idx[(floor(n0 / 2) + 1):n0]
 

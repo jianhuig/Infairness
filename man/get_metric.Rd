@@ -13,7 +13,8 @@ get_metric(Y, S, A, threshold = 0.5, W = NULL)
 
 \item{A}{Group indicator.}
 
-\item{threshold}{Classification threshold.}
+\item{threshold}{Classification threshold. Can be a scalar or a vector
+with one value per observation.}
 
 \item{W}{Optional observation weights.}
 }

@@ -12,14 +12,13 @@ Description: Provides tools for auditing group fairness metrics in
 License: MIT + file LICENSE
 Encoding: UTF-8
 Imports:
-    betacal,
     boot,
     caret,
     evd,
     glmnet,
     magrittr,
     MASS,
-    pROC,
+    mgcv,
     tibble
 LazyData: true
 RoxygenNote: 7.3.3

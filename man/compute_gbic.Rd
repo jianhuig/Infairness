@@ -10,7 +10,8 @@ compute_gbic(
   weights = NULL,
   P_total,
   gamma_ebic = 0.5,
-  penalize_intercept = FALSE
+  penalize_intercept = FALSE,
+  split_idx = NULL
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ compute_gbic(
 \item{gamma_ebic}{EBIC penalty parameter.}
 
 \item{penalize_intercept}{Whether to include the intercept in the penalty.}
+
+\item{split_idx}{Optional permutation of row indices used to define the
+two halves of the GBIC cross-fit split. When omitted, a random split is
+generated.}
 }
 \value{
 Generalized BIC score.

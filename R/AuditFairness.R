@@ -37,7 +37,7 @@ Audit_Fairness <- function(Y,
     Y_labeled <- Y[labeled_ind]
     S_labeled <- S[labeled_ind]
     A_labeled <- A[labeled_ind]
-    return(SupervisedFairness(Y_labeled, S_labeled, A_labeled, threshold))
+    return(SupervisedFairness(Y_labeled, S_labeled, A_labeled, threshold, ...))
   } else if (method == "semi-supervised") {
     if (is.null(basis)) {
       basis <- if (is.null(X)) "Poly(S)" else "Poly(S) + X"

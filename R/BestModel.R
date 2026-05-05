@@ -6,13 +6,23 @@
 #' comparing them here.
 #'
 #' @param criterion Model-selection criterion computed from `imp_quality`.
-#' Default is `"weighted_mse"`, which uses the TPR-weighted cross-fitted
-#' squared error.
+#' Default is `"weighted_mse"`, which uses a TPR-weighted cross-fitted
+#' squared-error criterion. `Select_Model()` uses this single criterion
+#' directly, not a vote across metrics. Use `"bic"` for the plain BIC score
+#' or `"mbic"` for a modified BIC with penalty multiplier
+#' `min(n^0.1, log(n))`, stored for regression-basis candidates.
+#' @return List containing `est`, `var`, and `alpha`. When
+#' `control_variate = TRUE`, the returned list also contains `cv_weights`, the
+#' estimated control-variate coefficient used for each metric and group.
 #' @export
 
 Select_Model <- function(models, Y, S, A, threshold,
-                         criterion = c("weighted_mse", "brier", "log_loss", "auc", "ece")) {
-  criterion <- match.arg(criterion)
+                         criterion = "weighted_mse",
+                         control_variate = FALSE) {
+  criterion <- match.arg(
+    criterion,
+    choices = c("weighted_mse", "bic", "mbic")
+  )
 
   model_folds <- lapply(models, function(x) attr(x, "cv_folds"))
   non_null_folds <- Filter(Negate(is.null), model_folds)
@@ -35,26 +45,19 @@ Select_Model <- function(models, Y, S, A, threshold,
 
   labeled_ind <- which(!is.na(Y))
 
-  # Create Indicator
-  C <- ifelse(S > threshold, 1, 0)
-
   # Labeled data.
   Y_labeled <- Y[labeled_ind]
   S_labeled <- S[labeled_ind]
   A_labeled <- A[labeled_ind]
-  C_labeled <- C[labeled_ind]
 
   # Unlabeled data.
   S_unlabeled <- S[-labeled_ind]
   A_unlabeled <- A[-labeled_ind]
-  C_unlabeled <- C[-labeled_ind]
 
   metric_name <- c(
     weighted_mse = "Weighted_MSE",
-    brier = "Brier_Score",
-    log_loss = "Log_Loss",
-    auc = "AUC",
-    ece = "ECE"
+    bic = "BIC",
+    mbic = "MBIC"
   )[[criterion]]
 
   valid_models <- Filter(function(x) !all(is.na(x)), models)
@@ -69,31 +72,23 @@ Select_Model <- function(models, Y, S, A, threshold,
     )
   }
 
-  winners <- do.call(
-    rbind,
-    lapply(metric_name, function(metric) {
-      v0 <- v1 <- c()
-      for (ss in models) {
-        if (!all(is.na(ss))) {
-          v0 <- c(v0, ss$imp_quality[1, metric])
-          v1 <- c(v1, ss$imp_quality[2, metric])
-        } else {
-          fallback <- if (criterion == "auc") -Inf else Inf
-          v0 <- c(v0, fallback)
-          v1 <- c(v1, fallback)
-        }
-      }
-      if (criterion == "auc") {
-        c(which.max(v0), which.max(v1))
-      } else {
-        c(which.min(v0), which.min(v1))
-      }
-    })
+  fallback <- Inf
+  model_scores <- matrix(
+    fallback,
+    nrow = length(models),
+    ncol = 2,
+    dimnames = list(NULL, c("Group1", "Group2"))
   )
 
-  best_model_idx <- apply(winners, 2, function(x) {
-    as.integer(names(which.max(table(x))))
-  })
+  for (j in seq_along(models)) {
+    ss <- models[[j]]
+    if (!all(is.na(ss))) {
+      model_scores[j, 1] <- ss$imp_quality[1, metric_name]
+      model_scores[j, 2] <- ss$imp_quality[2, metric_name]
+    }
+  }
+
+  best_model_idx <- apply(model_scores, 2, which.min)
 
   m_unlabeled <- models[[best_model_idx[1]]]$m_unlabeled
   m_labeled <- models[[best_model_idx[1]]]$m_labeled
@@ -128,5 +123,29 @@ Select_Model <- function(models, Y, S, A, threshold,
     method = "semi-supervised"
   )
 
-  return(list(est = est, var = var, alpha = alphas))
+  if (control_variate) {
+    cv_update <- apply_control_variate_update(
+      est_plugin = est,
+      var_plugin = var,
+      Y_labeled = Y_labeled,
+      S_labeled = S_labeled,
+      A_labeled = A_labeled,
+      m_labeled = m_labeled,
+      threshold_labeled = threshold,
+      S_unlabeled = S_unlabeled,
+      A_unlabeled = A_unlabeled,
+      m_unlabeled = m_unlabeled,
+      threshold_unlabeled = threshold
+    )
+    est <- cv_update$est
+    var <- cv_update$var
+    cv_weights <- cv_update$cv_weights
+  }
+
+  result <- list(est = est, var = var, alpha = alphas)
+  if (control_variate) {
+    result$cv_weights <- cv_weights
+  }
+
+  return(result)
 }
