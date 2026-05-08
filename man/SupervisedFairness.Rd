@@ -5,19 +5,7 @@
 \title{# Purpose: Estimation of fairness metrics in supervised setting.
 # Updated: 2023-07-17}
 \usage{
-SupervisedFairness(
-  Y,
-  S,
-  A,
-  threshold = 0.5,
-  W = NULL,
-  V = 10,
-  variance_method = "if",
-  bootstrap_reps = 200,
-  bootstrap_resample = "labeled",
-  bootstrap_seed = NULL,
-  bootstrap_cores = 1
-)
+SupervisedFairness(Y, S, A, threshold = 0.5, W = NULL, V = 10)
 }
 \arguments{
 \item{Y}{Outcome in the observed dataset.}
@@ -31,22 +19,6 @@ SupervisedFairness(
 \item{W}{Weight. Default is Null.}
 
 \item{V}{Number of folds for cross-fitting. Default is 5.}
-
-\item{variance_method}{Variance estimator to use. Default is `"if"`.
-Use `"bootstrap"` for stratified bootstrap variance.}
-
-\item{bootstrap_reps}{Number of bootstrap replicates when
-`variance_method = "bootstrap"`. Default is 200.}
-
-\item{bootstrap_resample}{Bootstrap resampling scope. `"labeled"` resamples
-the labeled data only; `"all"` is equivalent here because supervised
-estimation only uses labeled data.}
-
-\item{bootstrap_seed}{Optional random seed for bootstrap resampling.}
-
-\item{bootstrap_cores}{Number of CPU cores used for bootstrap replicates.
-Default is 1 (sequential). Values greater than 1 parallelize across
-bootstrap replicates on macOS/Linux.}
 }
 \description{
 Supervised fairness estimation with Cross-Fitting

@@ -21,10 +21,14 @@ FitParametricCalibration(
 
 \item{A_labeled}{Group indicator in labeled dataset.}
 
+\item{A_val}{Group value for the calibration model.}
+
 \item{S_unlabeled}{Model score in unlabeled dataset.}
 
 \item{method}{Method to use; Platt scaling or Beta calibration.
 Default is Platt scaling.}
+
+\item{W}{Optional observation weights.}
 }
 \description{
 Parametric calibration models.

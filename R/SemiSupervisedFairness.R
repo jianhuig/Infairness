@@ -11,16 +11,15 @@
 #' Default is NULL.
 #' @param basis Character vector giving the basis strategy used within each
 #' group. If a single value is supplied, it is reused for every group.
-#' Supported values in the current implementation include `"Poly(S)"`,
-#' `"Poly(S) + X"`, `"Spline(S)"`, `"Spline(S) + X"`, `"Spline Interaction"`,
-#' `"Log(S)"`, `"Log(S) + X"`, `"Log Interaction"`, `"Interaction"`,
-#' `"Beta"`, and `"kernel"`.
+#' Supported values in the current implementation include `"Spline(S)"`,
+#' `"Spline(S) + X"`, `"Spline Interaction"`, `"Beta"`, and `"kernel"`.
 #' `"Spline(S) + X"` uses a shared spline in `S` plus additive covariate
 #' effects, while `"Spline Interaction"` augments that model with spline-by-`X`
 #' interaction terms so the shape in `S` can vary with `X`.
 #' @param nknots Number of knots used by spline-based branches
 #' (`"Spline(S)"`, `"Spline(S) + X"`, and `"Spline Interaction"`). Default is
 #' 3. Ignored otherwise.
+#' @param W Optional observation weights. Currently reserved for compatibility.
 #' @param k Number of folds used for labeled-data cross-fitting when
 #' `cross_fit_variance = TRUE`. Default is 10.
 #' @param folds Optional named list of precomputed fold assignments, keyed by
@@ -31,41 +30,16 @@
 #' imputations are computed in-sample.
 #' @param return_imputation_quality Logical; if `TRUE`, attach imputation
 #' quality metrics and the labeled/unlabeled imputations to the result.
-#' @param control_variate Logical; if `TRUE`, apply a control-variate style
-#' bias correction using the fitted labeled and unlabeled imputations.
-#' @param variance_method Variance estimator to use. Default is `"if"`.
-#' Use `"bootstrap"` for stratified bootstrap variance.
-#' @param bootstrap_reps Number of bootstrap replicates when
-#' `variance_method = "bootstrap"`. Default is 200.
-#' @param bootstrap_resample Bootstrap resampling scope. `"labeled"` resamples
-#' the labeled data only, which matches the current IF target most closely.
-#' Use `"all"` to resample labeled and unlabeled observations within group.
-#' @param bootstrap_seed Optional random seed for bootstrap resampling.
-#' @param bootstrap_cores Number of CPU cores used for bootstrap replicates.
-#' Default is 1 (sequential). Values greater than 1 parallelize across
-#' bootstrap replicates on macOS/Linux.
-#' @param spline_ridge Logical; if `TRUE`, use ridge regression for
-#' spline-based branches. If `FALSE`, fit a binomial GLM on the spline basis.
-#' @param spline_gam Logical; if `TRUE`, use a low-rank GAM fit for
-#' spline-based branches. When `TRUE`, it overrides `spline_ridge`.
-#' @param ridge_unpenalize_binary_X Logical; if `TRUE`, ridge-based branches
-#' leave binary `X` main-effect columns unpenalized. Interaction terms involving
-#' binary `X` are still penalized. Default is `FALSE`.
-#' @param spline_include_D Logical; if `TRUE`, include the indicator
-#' `I(S > threshold)` in spline-based design matrices.
-#' @param log_include_D Logical; if `TRUE`, include the indicator
-#' `I(S > threshold)` in log-basis design matrices.
 #' @param kernel_order Bandwidth exponent used by the kernel smoother.
 #' Default is 0.45.
 #' @param kernel_use_ecdf Logical; if `TRUE`, transform `S` to the within-group
 #' empirical CDF scale before fitting the kernel smoother. Reported metrics,
 #' including Brier score, remain on the original score scale.
+#' @param ... Additional arguments. Removed options are rejected explicitly.
 #' @return List of estimated fairness metrics and their variances.
 #' The returned list always contains `est`, `var`, and `alpha`. When
 #' `return_imputation_quality = TRUE`, it also contains `imp_quality`,
-#' `m_labeled`, and `m_unlabeled`. When `control_variate = TRUE`, it also
-#' contains `cv_weights`, the estimated control-variate coefficient used for
-#' each metric and group.
+#' `m_labeled`, and `m_unlabeled`.
 #' @export
 #'
 
@@ -75,29 +49,55 @@ SSFairness <- function(
   A,
   threshold = 0.5,
   X = NULL,
-  basis = c("Poly(S)", "Poly(S)"),
+  basis = c("Spline(S)", "Spline(S)"),
   nknots = 3,
   W = NULL,
   k = 10,
   folds = NULL,
   cross_fit_variance = FALSE,
   return_imputation_quality = FALSE,
-  control_variate = FALSE,
-  variance_method = "if",
-  bootstrap_reps = 200,
-  bootstrap_resample = "labeled",
-  bootstrap_seed = NULL,
-  bootstrap_cores = 1,
-  spline_ridge = TRUE,
-  spline_gam = FALSE,
-  ridge_unpenalize_binary_X = FALSE,
-  spline_include_D = TRUE,
-  log_include_D = TRUE,
   kernel_order = 0.45,
   kernel_use_ecdf = FALSE,
   ...
 ) {
-  variance_method <- match.arg(variance_method, c("if", "bootstrap"))
+  dots <- list(...)
+  removed_args <- intersect(
+    names(dots),
+    c(
+      "control_variate",
+      "variance_method",
+      "bootstrap_reps",
+      "bootstrap_resample",
+      "bootstrap_seed",
+      "bootstrap_cores",
+      "spline_ridge",
+      "spline_gam",
+      "ridge_unpenalize_binary_X",
+      "spline_include_D",
+      "log_include_D"
+    )
+  )
+  if (length(removed_args) > 0) {
+    stop(
+      "Removed argument(s): ",
+      paste(removed_args, collapse = ", "),
+      ". These tuning options are no longer supported."
+    )
+  }
+  removed_basis <- c(
+    "Poly(S)", "Poly(S) + X", "Interaction",
+    "Log(S)", "Log(S) + X", "Log Interaction"
+  )
+  if (any(basis %in% removed_basis)) {
+    stop(
+      "This basis option has been removed. Use Spline, Beta, or kernel ",
+      "bases instead."
+    )
+  }
+  spline_ridge <- TRUE
+  spline_gam <- FALSE
+  ridge_unpenalize_binary_X <- FALSE
+  spline_include_D <- TRUE
 
   if (cross_fit_variance || return_imputation_quality) {
     quality_fit <- compute_imputation_quality(
@@ -111,17 +111,6 @@ SSFairness <- function(
       k = k,
       folds = folds,
       cross_fit = cross_fit_variance,
-      control_variate = control_variate,
-      variance_method = variance_method,
-      bootstrap_reps = bootstrap_reps,
-      bootstrap_resample = bootstrap_resample,
-      bootstrap_seed = bootstrap_seed,
-      bootstrap_cores = bootstrap_cores,
-      spline_ridge = spline_ridge,
-      spline_gam = spline_gam,
-      ridge_unpenalize_binary_X = ridge_unpenalize_binary_X,
-      spline_include_D = spline_include_D,
-      log_include_D = log_include_D,
       kernel_order = kernel_order,
       kernel_use_ecdf = kernel_use_ecdf,
       ...
@@ -132,10 +121,6 @@ SSFairness <- function(
       var = quality_fit$var,
       alpha = quality_fit$alpha
     )
-
-    if (control_variate) {
-      result$cv_weights <- quality_fit$cv_weights
-    }
 
     if (return_imputation_quality) {
       result$imp_quality <- quality_fit$imp_quality
@@ -210,142 +195,7 @@ SSFairness <- function(
   for (a in nclass) {
     basis_a <- basis[which(nclass == a)]
 
-    if (basis_a == "Poly(S)") {
-      alpha <- tryCatch(
-        {
-          find_alpha_glm(
-            Y = Y_labeled[A_labeled == a],
-            covariates_matrix = S_labeled[A_labeled == a] %>% as.matrix(),
-            additional_matrix = C_labeled[A_labeled == a] %>% as.matrix()
-          )
-        },
-        error = function(e) {
-          1
-        }
-      )
-
-      alphas <- c(alphas, alpha)
-
-      basis_labeled <- polynomial(S_labeled %>% as.data.frame(), alpha)
-      basis_unlabeled <- polynomial(S_unlabeled %>% as.data.frame(), alpha)
-
-      gamma <- tryCatch(
-        {
-          RidgeRegression(
-            X = cbind(
-              basis_labeled[A_labeled == a, -1],
-              C_labeled[A_labeled == a]
-            ) %>%
-              as.matrix(),
-            y = Y_labeled[A_labeled == a]
-          )
-        },
-        error = function(e) {
-          print("Ridge Regression produced an error")
-          print(e)
-        }
-      )
-
-      imputed_unlabeled <- boot::inv.logit(
-        as.matrix(
-          cbind(
-            1,
-            basis_unlabeled[A_unlabeled == a, -1],
-            C_unlabeled[A_unlabeled == a]
-          )
-        ) %*%
-          gamma$coefficients
-      )
-
-      m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
-      
-      imputed_labeled <- boot::inv.logit(
-        as.matrix(
-          cbind(
-            1,
-            basis_labeled[A_labeled == a, -1],
-            C_labeled[A_labeled == a]
-          )
-        ) %*%
-          gamma$coefficients
-      )
-      m_labeled[A_labeled == a] <- imputed_labeled
-
-    } else if (basis_a == "Poly(S) + X") {
-      alpha <- tryCatch(
-        {
-          find_alpha_glm(
-            Y = Y_labeled[A_labeled == a],
-            covariates_matrix = S_labeled[A_labeled == a] %>% as.matrix(),
-            additional_matrix = cbind(
-              C_labeled[A_labeled == a],
-              X_labeled[A_labeled == a, ]
-            ) %>%
-              as.matrix()
-          )
-        },
-        error = function(e) {
-          1
-        }
-      )
-
-      # print(alpha)
-      alphas <- c(alphas, alpha)
-
-      basis_labeled <- polynomial(S_labeled %>% as.data.frame(), alpha)
-      basis_unlabeled <- polynomial(S_unlabeled %>% as.data.frame(), alpha)
-
-      gamma <- tryCatch(
-        {
-          RidgeRegression(
-            X = cbind(
-              basis_labeled[A_labeled == a, -1],
-              C_labeled[A_labeled == a],
-              X_labeled[A_labeled == a, ]
-            ) %>%
-              as.matrix(),
-            y = Y_labeled[A_labeled == a],
-            penalty_factor = ridge_design_penalty_factor(
-              n_basis = ncol(basis_labeled[, -1, drop = FALSE]),
-              D = C_labeled[A_labeled == a],
-              X = X_labeled[A_labeled == a, , drop = FALSE],
-              unpenalize_binary_X = ridge_unpenalize_binary_X
-            )
-          )
-        },
-        error = function(e) {
-          print("Ridge Regression produced an error")
-          print(e)
-        }
-      )
-
-      imputed_unlabeled <- boot::inv.logit(
-        as.matrix(
-          cbind(
-            1,
-            basis_unlabeled[A_unlabeled == a, -1],
-            C_unlabeled[A_unlabeled == a],
-            X_unlabeled[A_unlabeled == a, ]
-          )
-        ) %*%
-          gamma$coefficients
-      )
-
-      m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
-      
-      imputed_labeled <- boot::inv.logit(
-        as.matrix(
-          cbind(
-            1,
-            basis_labeled[A_labeled == a, -1],
-            C_labeled[A_labeled == a],
-            X_labeled[A_labeled == a, ]
-          )
-        ) %*%
-          gamma$coefficients
-      )
-      m_labeled[A_labeled == a] <- imputed_labeled
-    } else if (basis_a == "Spline(S)") {
+    if (basis_a == "Spline(S)") {
       alphas <- c(alphas, nknots)
 
       basis_labeled <- NaturalSplineBasis(S_labeled %>% as.matrix(), nknots, return_knots = TRUE)
@@ -551,189 +401,6 @@ SSFairness <- function(
         X_cov = X_labeled[A_labeled == a, , drop = FALSE]
       )
       m_labeled[A_labeled == a] <- imputed_labeled
-    } else if (basis_a == "Log(S)") {
-      predictors_labeled <- build_log_predictors(
-        S = S_labeled[A_labeled == a],
-        D = if (log_include_D) C_labeled[A_labeled == a] else NULL
-      )
-      predictors_unlabeled <- build_log_predictors(
-        S = S_unlabeled[A_unlabeled == a],
-        D = if (log_include_D) C_unlabeled[A_unlabeled == a] else NULL
-      )
-
-      gamma <- tryCatch(
-        {
-          fit_log_basis_model(
-            X = predictors_labeled,
-            y = Y_labeled[A_labeled == a]
-          )
-        },
-        error = function(e) {
-          print("Log-basis model fitting produced an error")
-          print(e)
-        }
-      )
-
-      m_unlabeled[A_unlabeled == a] <- predict_log_basis_model(
-        gamma,
-        predictors_unlabeled
-      )
-      m_labeled[A_labeled == a] <- predict_log_basis_model(
-        gamma,
-        predictors_labeled
-      )
-    } else if (basis_a == "Log(S) + X") {
-      predictors_labeled <- build_log_predictors(
-        S = S_labeled[A_labeled == a],
-        D = if (log_include_D) C_labeled[A_labeled == a] else NULL,
-        X = X_labeled[A_labeled == a, , drop = FALSE]
-      )
-      predictors_unlabeled <- build_log_predictors(
-        S = S_unlabeled[A_unlabeled == a],
-        D = if (log_include_D) C_unlabeled[A_unlabeled == a] else NULL,
-        X = X_unlabeled[A_unlabeled == a, , drop = FALSE]
-      )
-
-      gamma <- tryCatch(
-        {
-          fit_log_basis_model(
-            X = predictors_labeled,
-            y = Y_labeled[A_labeled == a]
-          )
-        },
-        error = function(e) {
-          print("Log-basis model fitting produced an error")
-          print(e)
-        }
-      )
-
-      m_unlabeled[A_unlabeled == a] <- predict_log_basis_model(
-        gamma,
-        predictors_unlabeled
-      )
-      m_labeled[A_labeled == a] <- predict_log_basis_model(
-        gamma,
-        predictors_labeled
-      )
-    } else if (basis_a == "Log Interaction") {
-      predictors_labeled <- build_log_predictors(
-        S = S_labeled[A_labeled == a],
-        D = if (log_include_D) C_labeled[A_labeled == a] else NULL,
-        X = X_labeled[A_labeled == a, , drop = FALSE],
-        interaction = TRUE
-      )
-      predictors_unlabeled <- build_log_predictors(
-        S = S_unlabeled[A_unlabeled == a],
-        D = if (log_include_D) C_unlabeled[A_unlabeled == a] else NULL,
-        X = X_unlabeled[A_unlabeled == a, , drop = FALSE],
-        interaction = TRUE
-      )
-
-      gamma <- tryCatch(
-        {
-          fit_log_basis_model(
-            X = predictors_labeled,
-            y = Y_labeled[A_labeled == a]
-          )
-        },
-        error = function(e) {
-          print("Log-basis model fitting produced an error")
-          print(e)
-        }
-      )
-
-      m_unlabeled[A_unlabeled == a] <- predict_log_basis_model(
-        gamma,
-        predictors_unlabeled
-      )
-      m_labeled[A_labeled == a] <- predict_log_basis_model(
-        gamma,
-        predictors_labeled
-      )
-    } else if (basis_a == "Interaction") {
-      X_int <- S * as.matrix(X)
-      X_int <- cbind(X, X_int)
-      X_labeled_int <- X_int[labeled_ind, , drop = FALSE]
-      X_unlabeled_int <- X_int[-labeled_ind, , drop = FALSE]
-
-      alpha <- tryCatch(
-        {
-          find_alpha_glm(
-            Y = Y_labeled[A_labeled == a],
-            covariates_matrix = S_labeled[A_labeled == a] %>% as.matrix(),
-            additional_matrix = cbind(
-              C_labeled[A_labeled == a],
-              X_labeled_int[A_labeled == a, ]
-            ) %>%
-              as.matrix()
-          )
-        },
-        error = function(e) {
-          1
-        }
-      )
-
-      # print(alpha)
-      alphas <- c(alphas, alpha)
-
-      basis_labeled <- polynomial(S_labeled %>% as.data.frame(), alpha)
-      basis_unlabeled <- polynomial(S_unlabeled %>% as.data.frame(), alpha)
-
-      gamma <- tryCatch(
-        {
-          RidgeRegression(
-            X = cbind(
-              basis_labeled[A_labeled == a, -1],
-              C_labeled[A_labeled == a],
-              X_labeled_int[A_labeled == a, ]
-            ) %>%
-              as.matrix(),
-            y = Y_labeled[A_labeled == a],
-            penalty_factor = ridge_design_penalty_factor(
-              n_basis = ncol(basis_labeled[, -1, drop = FALSE]),
-              D = C_labeled[A_labeled == a],
-              X = X_labeled[A_labeled == a, , drop = FALSE],
-              X_interaction = X_labeled_int[
-                A_labeled == a,
-                (ncol(X_labeled) + 1):(2 * ncol(X_labeled)),
-                drop = FALSE
-              ],
-              unpenalize_binary_X = ridge_unpenalize_binary_X
-            )
-          )
-        },
-        error = function(e) {
-          print("Ridge Regression produced an error")
-          print(e)
-        }
-      )
-
-      imputed_unlabeled <- boot::inv.logit(
-        as.matrix(
-          cbind(
-            1,
-            basis_unlabeled[A_unlabeled == a, -1],
-            C_unlabeled[A_unlabeled == a],
-            X_unlabeled_int[A_unlabeled == a, ]
-          )
-        ) %*%
-          gamma$coefficients
-      )
-
-      m_unlabeled[A_unlabeled == a] <- imputed_unlabeled
-
-      imputed_labeled <- boot::inv.logit(
-        as.matrix(
-          cbind(
-            1,
-            basis_labeled[A_labeled == a, -1],
-            C_labeled[A_labeled == a],
-            X_labeled_int[A_labeled == a, ]
-          )
-        ) %*%
-          gamma$coefficients
-      )
-      m_labeled[A_labeled == a] <- imputed_labeled
     } else if (basis_a == "Beta") {
       S_calibrated <- FitParametricCalibration(
         Y_labeled,
@@ -809,58 +476,7 @@ SSFairness <- function(
     )
   }
 
-  if (control_variate) {
-    cv_update <- apply_control_variate_update(
-      est_plugin = est,
-      var_plugin = var,
-      Y_labeled = Y_labeled,
-      S_labeled = S_labeled,
-      A_labeled = A_labeled,
-      m_labeled = m_labeled,
-      threshold_labeled = threshold_labeled_raw,
-      S_unlabeled = S_unlabeled,
-      A_unlabeled = A_unlabeled,
-      m_unlabeled = m_unlabeled,
-      threshold_unlabeled = threshold_unlabeled_raw
-    )
-    est <- cv_update$est
-    var <- cv_update$var
-    cv_weights <- cv_update$cv_weights
-  }
-
-  if (variance_method == "bootstrap") {
-    var <- bootstrap_variance_semisupervised(
-      template_est = est,
-      Y = Y,
-      S = S,
-      A = A,
-      threshold = threshold,
-      X = X,
-      basis = basis,
-      nknots = nknots,
-      W = W,
-      k = k,
-      cross_fit_variance = cross_fit_variance,
-      control_variate = control_variate,
-      spline_ridge = spline_ridge,
-      spline_gam = spline_gam,
-      ridge_unpenalize_binary_X = ridge_unpenalize_binary_X,
-      spline_include_D = spline_include_D,
-      log_include_D = log_include_D,
-      kernel_order = kernel_order,
-      kernel_use_ecdf = kernel_use_ecdf,
-      B = bootstrap_reps,
-      resample = bootstrap_resample,
-      seed = bootstrap_seed,
-      bootstrap_cores = bootstrap_cores,
-      ...
-    )
-  }
-
   result <- list(est = est, var = var, alpha = alphas)
-  if (control_variate) {
-    result$cv_weights <- cv_weights
-  }
 
   return(result)
 }

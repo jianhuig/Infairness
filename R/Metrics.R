@@ -1,5 +1,19 @@
 # Purpose: Shared fairness-metric helpers.
 
+entropy <- function(x) {
+  x <- as.numeric(x)
+  if (any(!is.finite(x)) || any(x < 0)) {
+    return(NA_real_)
+  }
+  mu <- mean(x)
+  if (!is.finite(mu) || mu <= 0) {
+    return(NA_real_)
+  }
+  ratio <- x / mu
+  ratio <- ratio[ratio > 0]
+  mean(ratio * log(ratio))
+}
+
 #' Compute fairness metrics by group.
 #'
 #' @param Y Outcome or imputed outcome.
@@ -89,7 +103,7 @@ AUC.FUN <- function(data) {
 #' @param Vi Optional matrix of values to cumulatively aggregate.
 #' @param ties.method Tie handling method passed to `rank()`.
 #'
-#' @export
+#' @export sum.I
 sum.I <- function(yy, FUN, Yi, Vi = NULL, ties.method = "first") {
   if (FUN == "<" | FUN == ">=") {
     yy <- -yy

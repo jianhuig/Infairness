@@ -24,10 +24,6 @@ RidgeRegression(
 \item{penalty_factor}{Optional per-column penalty factors passed to
 `glmnet::cv.glmnet()`. Use 0 for unpenalized columns and 1 for the default
 ridge penalty.}
-
-\item{coef}{Coefficient for scaling lambda values.}
-
-\item{family}{Exponential family of interest.}
 }
 \value{
 Vector containing regression coefficients.

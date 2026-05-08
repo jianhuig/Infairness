@@ -4,27 +4,26 @@
 \alias{Select_Model}
 \title{Select best model}
 \usage{
-Select_Model(
-  models,
-  Y,
-  S,
-  A,
-  threshold,
-  criterion = "weighted_mse",
-  control_variate = FALSE
-)
+Select_Model(models, Y, S, A, threshold, criterion = "weighted_mse")
 }
 \arguments{
+\item{models}{List of candidate `SSFairness()` fits with
+`return_imputation_quality = TRUE`.}
+
+\item{Y}{Outcome vector with missing values for unlabeled observations.}
+
+\item{S}{Model score.}
+
+\item{A}{Group indicator.}
+
+\item{threshold}{Threshold for classification based on the model score.}
+
 \item{criterion}{Model-selection criterion computed from `imp_quality`.
 Default is `"weighted_mse"`, which uses a TPR-weighted cross-fitted
 squared-error criterion. `Select_Model()` uses this single criterion
 directly, not a vote across metrics. Use `"bic"` for the plain BIC score
 or `"mbic"` for a modified BIC with penalty multiplier
 `min(n^0.1, log(n))`, stored for regression-basis candidates.}
-
-\item{control_variate}{Logical; if `TRUE`, apply the control-variate style
-bias correction after combining the selected group-specific imputation
-models.}
 }
 \description{
 When candidate models were fit with cross-fitted imputation quality, they
@@ -33,7 +32,5 @@ each `SSFairness(..., return_imputation_quality = TRUE)` call before
 comparing them here.
 }
 \value{
-List containing `est`, `var`, and `alpha`. When `control_variate = TRUE`,
-the returned list also contains `cv_weights`, the estimated
-control-variate coefficient used for each metric and group.
+List containing `est`, `var`, and `alpha`.
 }

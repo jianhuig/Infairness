@@ -1,50 +1,80 @@
 # SSFairnessAudit
 
-`SSFairnessAudit` is an R package for auditing group fairness metrics when labels are fully observed or only partially available. The repository contains the package source, generated documentation, and a small set of research scripts used for simulation experiments.
+R package for semi-supervised group fairness auditing when labels are only
+partially observed.
 
-## Main workflow
+## Installation
 
-Use `Audit_Fairness()` as the high-level entry point or call `SSFairness()`
-directly when you want more control over the semi-supervised estimator.
+```r
+devtools::install_github("jianhuig/Infairness")
+```
 
-`SSFairness()` now supports useful controls:
+## Example
 
-- `cross_fit_variance = TRUE` to use the cross-fitted imputation path for variance estimation
-- `return_imputation_quality = TRUE` to return imputation diagnostics plus the labeled and unlabeled imputations
-- `folds = ...` to reuse the same labeled-data folds across candidate models when comparing them with `Select_Model()`
-- `ridge_unpenalize_binary_X = TRUE` to leave binary `X` main effects unpenalized in ridge fits while still penalizing their interaction terms
+The example below compares a supervised analysis using only labeled
+observations with a semi-supervised analysis that uses all scores and a
+binary covariate `W` through the `"Spline Interaction"` basis.
 
-The semi-supervised basis options now include polynomial, natural spline,
-interaction, beta-calibration, and kernel branches. The natural spline path is
-available through `basis = "Spline(S)"`, `basis = "Spline(S) + X"`, and
-`basis = "Spline Interaction"`. The additive spline branch uses a shared
-smooth in `S` plus additive covariate effects; the spline interaction branch
-adds spline-by-covariate interactions so the shape in `S` can vary with `X`.
+```r
+library(SSFairnessAudit)
 
-## Repository layout
+## Set up sample sizes.
+n_labeled <- 200
+N_unlabeled <- 10000
+N_total <- n_labeled + N_unlabeled
 
-- `R/`: package source code
-- `man/`: generated `.Rd` documentation
-- `docs/`: pkgdown site output
-- `scripts/`: simulation and exploratory analysis scripts
+generate_example_data <- function(N) {
+  A <- rbinom(N, 1, 0.6)
+  W <- rbinom(N, 1, 0.5)
+  Y <- rbinom(N, 1, 0.3)
+  S <- numeric(N)
 
-## Main user-facing functions
+  beta_par <- data.frame(
+    A = c(0, 0, 0, 0, 1, 1, 1, 1),
+    W = c(0, 1, 0, 1, 0, 1, 0, 1),
+    Y = c(1, 1, 0, 0, 1, 1, 0, 0),
+    alpha = c(14, 4.5, 2.5, 7, 7, 7, 5, 5),
+    beta = c(4, 10, 10, 5, 5, 5, 7, 7)
+  )
 
-- `Audit_Fairness()`: wrapper for supervised and semi-supervised auditing
-- `SupervisedFairness()`: fairness estimation with labeled outcomes
-- `SSFairness()`: semi-supervised fairness estimation and optional imputation diagnostics
-- `DataGeneration()`: synthetic data generator for simulations
-- `Select_Model()`: candidate-model selection helper
-  Default selection uses the TPR-weighted cross-fitted squared-error
-  criterion directly, with `criterion = "bic"` for plain BIC and
-  `criterion = "mbic"` for the modified BIC penalty `min(n^0.1, log(n))`
-  on the regression-basis branches.
+  for (j in seq_len(nrow(beta_par))) {
+    row <- beta_par[j, ]
+    idx <- A == row$A & W == row$W & Y == row$Y
+    S[idx] <- rbeta(sum(idx), row$alpha, row$beta)
+  }
 
-When comparing candidate semi-supervised models with cross-fitted imputation
-quality, reuse the same `folds` object across all `SSFairness()` calls so the
-comparison is based on the same labeled-data splits.
+  data.frame(Y = Y, S = S, A = A, W = W)
+}
 
-## Notes
+dat <- generate_example_data(N_total)
 
-- `docs/` is committed so the package website can be served from GitHub Pages.
-- `scripts/` is intentionally excluded from package builds because it supports experiments rather than the package API.
+threshold <- 0.5
+
+## Keep labels only for a random labeled subset.
+labeled_ind <- sample(seq_len(N_total), n_labeled)
+Y <- rep(NA_real_, N_total)
+Y[labeled_ind] <- dat$Y[labeled_ind]
+X <- data.frame(W = dat$W)
+
+## Supervised fairness audit using labeled observations only.
+fair_supervised <- SupervisedFairness(
+  Y = dat$Y[labeled_ind],
+  S = dat$S[labeled_ind],
+  A = dat$A[labeled_ind],
+  threshold = threshold
+)
+
+## Semi-supervised fairness audit using spline-by-W interactions.
+fair_ss <- SSFairness(
+  Y = Y,
+  S = dat$S,
+  A = dat$A,
+  X = X,
+  threshold = threshold,
+  basis = "Spline Interaction",
+  nknots = 3
+)
+
+fair_supervised$est
+fair_ss$est
+```

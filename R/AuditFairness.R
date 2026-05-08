@@ -12,10 +12,11 @@
 #' @param X Optional covariates matrix for adjustment in the semi-supervised
 #' setting. Default is NULL.
 #' @param basis Basis expansion method for score augmentation. Options include
-#' "Poly(S)", "Poly(S) + X", "Spline(S)", "Spline(S) + X",
-#' "Spline Interaction", "Interaction", "Beta", and "kernel". When `basis` is
-#' `NULL`, `Audit_Fairness()` defaults to "Poly(S)" if `X` is `NULL` and to
-#' "Poly(S) + X" otherwise.
+#' "Spline(S)", "Spline(S) + X", "Spline Interaction", "Beta", and
+#' "kernel". When `basis` is
+#' `NULL`, `Audit_Fairness()` defaults to "Spline(S)" if `X` is `NULL` and to
+#' "Spline(S) + X" otherwise.
+#' @param k Number of folds used by semi-supervised cross-fitting.
 #' @param ... Additional parameters passed to `SSFairness()`.
 #' @return A list containing the fairness audit results.
 #'
@@ -40,7 +41,7 @@ Audit_Fairness <- function(Y,
     return(SupervisedFairness(Y_labeled, S_labeled, A_labeled, threshold, ...))
   } else if (method == "semi-supervised") {
     if (is.null(basis)) {
-      basis <- if (is.null(X)) "Poly(S)" else "Poly(S) + X"
+      basis <- if (is.null(X)) "Spline(S)" else "Spline(S) + X"
     }
     return(SSFairness(Y, S, A, threshold, X, basis, k = k, ...))
   }

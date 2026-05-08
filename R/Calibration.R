@@ -1,13 +1,19 @@
 # Purpose: Calibration helpers used by semi-supervised estimators.
 
+clamp_probabilities <- function(S, eps = 1e-6) {
+  pmin(pmax(S, eps), 1 - eps)
+}
+
 #' Parametric calibration models.
 #'
 #' @param Y_labeled Outcome in labeled dataset.
 #' @param S_labeled Model score in labeled dataset.
 #' @param A_labeled Group indicator in labeled dataset.
+#' @param A_val Group value for the calibration model.
 #' @param S_unlabeled Model score in unlabeled dataset.
 #' @param method Method to use; Platt scaling or Beta calibration.
 #' Default is Platt scaling.
+#' @param W Optional observation weights.
 #' @export
 FitParametricCalibration <- function(Y_labeled,
                                      S_labeled,

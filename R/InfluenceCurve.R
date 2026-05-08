@@ -3,11 +3,14 @@
 
 #' Influence Curves
 #'
+#' @param pest Point-estimate table returned by `get_metric()`.
 #' @param Y Outcome in labeled dataset.
 #' @param S Model score in labeled dataset.
 #' @param A Group indicator in labeled dataset.
+#' @param m Optional imputed outcome values for semi-supervised estimation.
 #' @param threshold Threshold for classification based on the model score.
 #' Default value is 0.5. Can also be a vector with one value per observation.
+#' @param method Either `"supervised"` or `"semi-supervised"`.
 #' @export
 
 Influence_curve <- function(pest, Y, S, A, m = NULL, threshold = 0.5, method) {

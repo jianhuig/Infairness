@@ -14,11 +14,9 @@ Encoding: UTF-8
 Imports:
     boot,
     caret,
-    evd,
     glmnet,
     magrittr,
     MASS,
-    mgcv,
     tibble
 LazyData: true
 RoxygenNote: 7.3.3

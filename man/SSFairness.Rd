@@ -10,24 +10,13 @@ SSFairness(
   A,
   threshold = 0.5,
   X = NULL,
-  basis = c("Poly(S)", "Poly(S)"),
+  basis = c("Spline(S)", "Spline(S)"),
   nknots = 3,
   W = NULL,
   k = 10,
   folds = NULL,
   cross_fit_variance = FALSE,
   return_imputation_quality = FALSE,
-  control_variate = FALSE,
-  variance_method = "if",
-  bootstrap_reps = 200,
-  bootstrap_resample = "labeled",
-  bootstrap_seed = NULL,
-  bootstrap_cores = 1,
-  spline_ridge = TRUE,
-  spline_gam = FALSE,
-  ridge_unpenalize_binary_X = FALSE,
-  spline_include_D = TRUE,
-  log_include_D = TRUE,
   kernel_order = 0.45,
   kernel_use_ecdf = FALSE,
   ...
@@ -48,10 +37,8 @@ Default is NULL.}
 
 \item{basis}{Character vector giving the basis strategy used within each
 group. If a single value is supplied, it is reused for every group.
-Supported values in the current implementation include `"Poly(S)"`,
-`"Poly(S) + X"`, `"Spline(S)"`, `"Spline(S) + X"`, `"Spline Interaction"`,
-`"Log(S)"`, `"Log(S) + X"`, `"Log Interaction"`, `"Interaction"`,
-`"Beta"`, and `"kernel"`.
+Supported values in the current implementation include `"Spline(S)"`,
+`"Spline(S) + X"`, `"Spline Interaction"`, `"Beta"`, and `"kernel"`.
 `"Spline(S) + X"` uses a shared spline in `S` plus additive covariate
 effects, while `"Spline Interaction"` augments that model with spline-by-`X`
 interaction terms so the shape in `S` can vary with `X`.}
@@ -59,6 +46,8 @@ interaction terms so the shape in `S` can vary with `X`.}
 \item{nknots}{Number of knots used by spline-based branches
 (`"Spline(S)"`, `"Spline(S) + X"`, and `"Spline Interaction"`). Default is
 3. Ignored otherwise.}
+
+\item{W}{Optional observation weights. Currently reserved for compatibility.}
 
 \item{k}{Number of folds used for labeled-data cross-fitting when
 `cross_fit_variance = TRUE`. Default is 10.}
@@ -74,55 +63,20 @@ imputations are computed in-sample.}
 \item{return_imputation_quality}{Logical; if `TRUE`, attach imputation
 quality metrics and the labeled/unlabeled imputations to the result.}
 
-\item{control_variate}{Logical; if `TRUE`, apply a control-variate style
-bias correction using the fitted labeled and unlabeled imputations.}
-
-\item{variance_method}{Variance estimator to use. Default is `"if"`.
-Use `"bootstrap"` for stratified bootstrap variance.}
-
-\item{bootstrap_reps}{Number of bootstrap replicates when
-`variance_method = "bootstrap"`. Default is 200.}
-
-\item{bootstrap_resample}{Bootstrap resampling scope. `"labeled"` resamples
-the labeled data only, which matches the current IF target most closely.
-Use `"all"` to resample labeled and unlabeled observations within group.}
-
-\item{bootstrap_seed}{Optional random seed for bootstrap resampling.}
-
-\item{bootstrap_cores}{Number of CPU cores used for bootstrap replicates.
-Default is 1 (sequential). Values greater than 1 parallelize across
-bootstrap replicates on macOS/Linux.}
-
-\item{spline_ridge}{Logical; if `TRUE`, use ridge regression for
-spline-based branches. If `FALSE`, fit a binomial GLM on the spline basis.}
-
-\item{spline_gam}{Logical; if `TRUE`, use a low-rank GAM fit for
-spline-based branches. When `TRUE`, it overrides `spline_ridge`.}
-
-\item{ridge_unpenalize_binary_X}{Logical; if `TRUE`, ridge-based branches
-leave binary `X` main-effect columns unpenalized. Interaction terms involving
-binary `X` are still penalized. Default is `FALSE`.}
-
-\item{spline_include_D}{Logical; if `TRUE`, include the indicator
-`I(S > threshold)` in spline-based design matrices.}
-
-\item{log_include_D}{Logical; if `TRUE`, include the indicator
-`I(S > threshold)` in log-basis design matrices.}
-
 \item{kernel_order}{Bandwidth exponent used by the kernel smoother.
 Default is 0.45.}
 
 \item{kernel_use_ecdf}{Logical; if `TRUE`, transform `S` to the within-group
 empirical CDF scale before fitting the kernel smoother. Reported metrics,
 including Brier score, remain on the original score scale.}
+
+\item{...}{Additional arguments. Removed options are rejected explicitly.}
 }
 \value{
 List of estimated fairness metrics and their variances.
 The returned list always contains `est`, `var`, and `alpha`. When
 `return_imputation_quality = TRUE`, it also contains `imp_quality`,
-`m_labeled`, and `m_unlabeled`. When `control_variate = TRUE`, it also
-contains `cv_weights`, the estimated control-variate coefficient used for
-each metric and group.
+`m_labeled`, and `m_unlabeled`.
 }
 \description{
 Semi-supervised fairness estimation.

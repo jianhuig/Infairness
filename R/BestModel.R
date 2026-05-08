@@ -5,20 +5,23 @@
 #' each `SSFairness(..., return_imputation_quality = TRUE)` call before
 #' comparing them here.
 #'
+#' @param models List of candidate `SSFairness()` fits with
+#' `return_imputation_quality = TRUE`.
+#' @param Y Outcome vector with missing values for unlabeled observations.
+#' @param S Model score.
+#' @param A Group indicator.
+#' @param threshold Threshold for classification based on the model score.
 #' @param criterion Model-selection criterion computed from `imp_quality`.
 #' Default is `"weighted_mse"`, which uses a TPR-weighted cross-fitted
 #' squared-error criterion. `Select_Model()` uses this single criterion
 #' directly, not a vote across metrics. Use `"bic"` for the plain BIC score
 #' or `"mbic"` for a modified BIC with penalty multiplier
 #' `min(n^0.1, log(n))`, stored for regression-basis candidates.
-#' @return List containing `est`, `var`, and `alpha`. When
-#' `control_variate = TRUE`, the returned list also contains `cv_weights`, the
-#' estimated control-variate coefficient used for each metric and group.
+#' @return List containing `est`, `var`, and `alpha`.
 #' @export
 
 Select_Model <- function(models, Y, S, A, threshold,
-                         criterion = "weighted_mse",
-                         control_variate = FALSE) {
+                         criterion = "weighted_mse") {
   criterion <- match.arg(
     criterion,
     choices = c("weighted_mse", "bic", "mbic")
@@ -123,29 +126,5 @@ Select_Model <- function(models, Y, S, A, threshold,
     method = "semi-supervised"
   )
 
-  if (control_variate) {
-    cv_update <- apply_control_variate_update(
-      est_plugin = est,
-      var_plugin = var,
-      Y_labeled = Y_labeled,
-      S_labeled = S_labeled,
-      A_labeled = A_labeled,
-      m_labeled = m_labeled,
-      threshold_labeled = threshold,
-      S_unlabeled = S_unlabeled,
-      A_unlabeled = A_unlabeled,
-      m_unlabeled = m_unlabeled,
-      threshold_unlabeled = threshold
-    )
-    est <- cv_update$est
-    var <- cv_update$var
-    cv_weights <- cv_update$cv_weights
-  }
-
-  result <- list(est = est, var = var, alpha = alphas)
-  if (control_variate) {
-    result$cv_weights <- cv_weights
-  }
-
-  return(result)
+  list(est = est, var = var, alpha = alphas)
 }

@@ -2,9 +2,7 @@
 #'
 #' @param X Covariate matrix.
 #' @param y Numeric outcome vector.
-#' @param coef Coefficient for scaling lambda values.
 #' @param weights Numeric vector of weights.
-#' @param family Exponential family of interest.
 #' @param exponents Sequence of exponents for generating lambda values.
 #' @param penalty_factor Optional per-column penalty factors passed to
 #' `glmnet::cv.glmnet()`. Use 0 for unpenalized columns and 1 for the default

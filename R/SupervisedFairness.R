@@ -10,17 +10,6 @@
 #' @param threshold Threshold for classification. Default is 0.5.
 #' @param W Weight. Default is Null.
 #' @param V Number of folds for cross-fitting. Default is 5.
-#' @param variance_method Variance estimator to use. Default is `"if"`.
-#' Use `"bootstrap"` for stratified bootstrap variance.
-#' @param bootstrap_reps Number of bootstrap replicates when
-#' `variance_method = "bootstrap"`. Default is 200.
-#' @param bootstrap_resample Bootstrap resampling scope. `"labeled"` resamples
-#' the labeled data only; `"all"` is equivalent here because supervised
-#' estimation only uses labeled data.
-#' @param bootstrap_seed Optional random seed for bootstrap resampling.
-#' @param bootstrap_cores Number of CPU cores used for bootstrap replicates.
-#' Default is 1 (sequential). Values greater than 1 parallelize across
-#' bootstrap replicates on macOS/Linux.
 #' @export
 
 SupervisedFairness <- function(Y,
@@ -28,35 +17,13 @@ SupervisedFairness <- function(Y,
                                   A,
                                   threshold = 0.5,
                                   W = NULL,
-                                  V = 10,
-                                  variance_method = "if",
-                                  bootstrap_reps = 200,
-                                  bootstrap_resample = "labeled",
-                                  bootstrap_seed = NULL,
-                                  bootstrap_cores = 1) {
-  variance_method <- match.arg(variance_method, c("if", "bootstrap"))
-  
+                                  V = 10) {
   lab <- which(!is.na(Y))
   Y <- Y[lab]; S <- S[lab]; A <- A[lab]
   n <- length(Y)
   if (is.null(W)) W <- rep(1, n)
 
   final_est <- get_metric(Y, S, A, threshold)
-
-  if (variance_method == "bootstrap") {
-    final_var_df <- bootstrap_variance_supervised(
-      template_est = final_est,
-      Y = Y,
-      S = S,
-      A = A,
-      threshold = threshold,
-      B = bootstrap_reps,
-      resample = bootstrap_resample,
-      seed = bootstrap_seed,
-      bootstrap_cores = bootstrap_cores
-    )
-    return(list(est = final_est, var = final_var_df))
-  }
 
   folds <- integer(n)
   for (a in sort(unique(A))) {

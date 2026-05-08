@@ -33,10 +33,12 @@ Default is 0.5.}
 setting. Default is NULL.}
 
 \item{basis}{Basis expansion method for score augmentation. Options include
-"Poly(S)", "Poly(S) + X", "Spline(S)", "Spline(S) + X",
-"Spline Interaction", "Interaction", "Beta", and "kernel". When `basis` is
-`NULL`, `Audit_Fairness()` defaults to "Poly(S)" if `X` is `NULL` and to
-"Poly(S) + X" otherwise.}
+"Spline(S)", "Spline(S) + X", "Spline Interaction", "Beta", and
+"kernel". When `basis` is
+`NULL`, `Audit_Fairness()` defaults to "Spline(S)" if `X` is `NULL` and to
+"Spline(S) + X" otherwise.}
+
+\item{k}{Number of folds used by semi-supervised cross-fitting.}
 
 \item{...}{Additional parameters passed to `SSFairness()`.}
 }

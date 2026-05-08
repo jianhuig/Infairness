@@ -7,14 +7,20 @@
 Influence_curve(pest, Y, S, A, m = NULL, threshold = 0.5, method)
 }
 \arguments{
+\item{pest}{Point-estimate table returned by `get_metric()`.}
+
 \item{Y}{Outcome in labeled dataset.}
 
 \item{S}{Model score in labeled dataset.}
 
 \item{A}{Group indicator in labeled dataset.}
 
+\item{m}{Optional imputed outcome values for semi-supervised estimation.}
+
 \item{threshold}{Threshold for classification based on the model score.
 Default value is 0.5. Can also be a vector with one value per observation.}
+
+\item{method}{Either `"supervised"` or `"semi-supervised"`.}
 }
 \description{
 Influence Curves

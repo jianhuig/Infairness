@@ -31,7 +31,7 @@ ns.basis <- function(X, nk) {
 #' @param X Variable of interest.
 #' @param x Knot location.
 #'
-#' @export
+#' @export trunc.cub
 trunc.cub <- function(X, x) {
   ((X > x) * (X - x))^3
 }
